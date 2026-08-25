@@ -95,7 +95,9 @@ internal static class Program
             return true;
         }
 
-        if (msg == Win32.WM_ENDSESSION)
+        // wParam is FALSE when a previously announced session end was cancelled;
+        // the app must keep running in that case.
+        if (msg == Win32.WM_ENDSESSION && wParam != IntPtr.Zero)
         {
             Shutdown();
             return false;

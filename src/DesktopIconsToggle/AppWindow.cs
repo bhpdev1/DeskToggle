@@ -48,8 +48,20 @@ internal sealed class AppWindow : IDisposable
 
     private IntPtr WindowProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam)
     {
-        if (MessageReceived?.Invoke(msg, wParam, lParam) == true)
+        try
         {
+            if (MessageReceived?.Invoke(msg, wParam, lParam) == true)
+            {
+                return IntPtr.Zero;
+            }
+        }
+        catch
+        {
+            // An exception escaping a reverse P/Invoke callback tears the process down
+            // without necessarily running ProcessExit, which would leave the user's icons
+            // hidden with no app left to restore them. Leave through the normal exit path
+            // instead: the message loop returns and Main's Shutdown() runs EnsureVisible.
+            Win32.PostQuitMessage(1);
             return IntPtr.Zero;
         }
 

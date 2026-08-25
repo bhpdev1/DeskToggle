@@ -44,8 +44,13 @@ internal sealed class TrayIcon : IDisposable
             return;
         }
 
-        bool ok = Win32.Shell_NotifyIconW(visible ? Win32.NIM_ADD : Win32.NIM_DELETE, ref _data);
-        _visible = visible && ok;
+        // Record the new state only when the shell accepted it. Clearing _visible after
+        // a failed NIM_DELETE would strand an icon this process can no longer address:
+        // every later NIM_MODIFY and NIM_DELETE would be skipped by the guard above.
+        if (Win32.Shell_NotifyIconW(visible ? Win32.NIM_ADD : Win32.NIM_DELETE, ref _data))
+        {
+            _visible = visible;
+        }
     }
 
     /// <summary>Re-adds the icon after Explorer restarts.</summary>
@@ -89,6 +94,11 @@ internal sealed class TrayIcon : IDisposable
 
             int chosen = Win32.TrackPopupMenu(menu, Win32.TPM_RIGHTBUTTON | Win32.TPM_RETURNCMD,
                                               cursor.X, cursor.Y, 0, _data.hWnd, IntPtr.Zero);
+
+            // Documented shell requirement, the counterpart to SetForegroundWindow above:
+            // without it the menu can fail to dismiss when the user clicks away.
+            Win32.PostMessageW(_data.hWnd, Win32.WM_NULL, IntPtr.Zero, IntPtr.Zero);
+
             if (chosen != 0)
             {
                 CommandChosen?.Invoke(chosen);

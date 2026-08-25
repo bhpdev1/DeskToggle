@@ -5,6 +5,7 @@ namespace DesktopIconsToggle.Native;
 internal static class Win32
 {
     // ---- messages ----
+    public const int WM_NULL         = 0x0000;
     public const int WM_DESTROY      = 0x0002;
     public const int WM_CLOSE        = 0x0010;
     public const int WM_QUIT         = 0x0012;
