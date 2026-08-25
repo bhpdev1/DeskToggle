@@ -126,7 +126,15 @@ internal sealed class MenuIcons : IDisposable
             {
                 var buffer = new char[64];
                 int length = Win32.GetTextFaceW(screenDc, buffer.Length, buffer);
-                string actual = length > 0 ? new string(buffer, 0, length) : string.Empty;
+                if (length <= 0)
+                {
+                    return false;
+                }
+
+                // GetTextFaceW counts the terminating null in its return value, so the
+                // naive substring carries a trailing '\0' and never compares equal.
+                int end = Array.IndexOf(buffer, '\0', 0, length);
+                string actual = new string(buffer, 0, end >= 0 ? end : length);
                 return string.Equals(actual, family, StringComparison.OrdinalIgnoreCase);
             }
             finally

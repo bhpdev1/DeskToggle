@@ -244,7 +244,7 @@ internal static class HotkeyCapture
             s_hwnd, IntPtr.Zero, hInstance, IntPtr.Zero);
 
         s_hintHandle = Win32.CreateWindowExW(0, "STATIC",
-            "Au moins une touche de modification (Ctrl, Alt, Maj ou Windows) est requise. Échap seul annule.",
+            "Au moins un modificateur (Ctrl, Alt, Maj ou Windows) est requis. Échap seul annule.",
             labelStyle, hintRect.X, hintRect.Y, hintRect.Width, hintRect.Height,
             s_hwnd, IntPtr.Zero, hInstance, IntPtr.Zero);
 
@@ -564,7 +564,14 @@ internal static class HotkeyCapture
         s_state = CaptureState.Confirming;
 
         Win32.SetWindowTextW(s_comboHandle, HotkeyFormatter.Format(modifiers, virtualKey));
-        SetStatus("Entrée pour confirmer, Échap pour annuler, ou appuie sur une autre combinaison.");
+
+        string status = "Entrée pour confirmer, Échap pour annuler. Une autre combinaison remplace celle-ci.";
+        if (HotkeyFormatter.IsCommonlyUsedByApps(modifiers, virtualKey))
+        {
+            status += " Attention : cette combinaison est très utilisée par les applications, elle ne fonctionnera plus ailleurs.";
+        }
+
+        SetStatus(status);
 
         Win32.ShowWindow(s_confirmButtonHandle, Win32.SW_SHOW);
         Win32.ShowWindow(s_cancelButtonHandle, Win32.SW_SHOW);

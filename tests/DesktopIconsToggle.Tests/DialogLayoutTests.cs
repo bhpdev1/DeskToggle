@@ -28,8 +28,8 @@ public class DialogLayoutTests
         Assert.Equal(43, DialogLayout.Scale(DialogLayout.ComboHeight, 120));
         Assert.Equal(138, DialogLayout.Scale(DialogLayout.ButtonWidth, 120));
         Assert.Equal(38, DialogLayout.Scale(DialogLayout.ButtonHeight, 120));
-        Assert.Equal(575, DialogLayout.Scale(DialogLayout.BaseWidth, 120));
-        Assert.Equal(263, DialogLayout.Scale(DialogLayout.BaseHeight, 120));
+        Assert.Equal(650, DialogLayout.Scale(DialogLayout.BaseWidth, 120));
+        Assert.Equal(295, DialogLayout.Scale(DialogLayout.BaseHeight, 120));
     }
 
     [Fact]
@@ -41,8 +41,8 @@ public class DialogLayoutTests
         Assert.Equal(51, DialogLayout.Scale(DialogLayout.ComboHeight, 144));
         Assert.Equal(165, DialogLayout.Scale(DialogLayout.ButtonWidth, 144));
         Assert.Equal(45, DialogLayout.Scale(DialogLayout.ButtonHeight, 144));
-        Assert.Equal(690, DialogLayout.Scale(DialogLayout.BaseWidth, 144));
-        Assert.Equal(315, DialogLayout.Scale(DialogLayout.BaseHeight, 144));
+        Assert.Equal(780, DialogLayout.Scale(DialogLayout.BaseWidth, 144));
+        Assert.Equal(354, DialogLayout.Scale(DialogLayout.BaseHeight, 144));
     }
 
     [Fact]
@@ -54,8 +54,8 @@ public class DialogLayoutTests
         Assert.Equal(68, DialogLayout.Scale(DialogLayout.ComboHeight, 192));
         Assert.Equal(220, DialogLayout.Scale(DialogLayout.ButtonWidth, 192));
         Assert.Equal(60, DialogLayout.Scale(DialogLayout.ButtonHeight, 192));
-        Assert.Equal(920, DialogLayout.Scale(DialogLayout.BaseWidth, 192));
-        Assert.Equal(420, DialogLayout.Scale(DialogLayout.BaseHeight, 192));
+        Assert.Equal(1040, DialogLayout.Scale(DialogLayout.BaseWidth, 192));
+        Assert.Equal(472, DialogLayout.Scale(DialogLayout.BaseHeight, 192));
     }
 
     // ---- WindowSize ----
@@ -101,18 +101,18 @@ public class DialogLayoutTests
     [Fact]
     public void BugRegression_MarginsAreEqualAt144DpiNotJustTheOuterWidthOneOff()
     {
-        // Hand-traced: at 144 DPI the client width for the base design is 690, the
+        // Hand-traced: at 144 DPI the client width for the base design is 780, the
         // margin is 24. A left margin of 24 and a 1-pixel-off right margin (i.e. using
         // the outer window width instead of the client width) is exactly the bug this
         // type exists to prevent.
-        const int clientWidth = 690;
+        const int clientWidth = 780;
         const int dpi = 144;
 
         var prompt = DialogLayout.Prompt(clientWidth, dpi);
 
         Assert.Equal(24, prompt.X);
-        Assert.Equal(666, prompt.X + prompt.Width); // 690 - 24, not 690 - 1
-        Assert.Equal(642, prompt.Width);
+        Assert.Equal(756, prompt.X + prompt.Width); // 780 - 24, not 780 - 1
+        Assert.Equal(732, prompt.Width);
     }
 
     // ---- Vertical stacking ----
@@ -128,6 +128,7 @@ public class DialogLayoutTests
         int margin = DialogLayout.Scale(DialogLayout.Margin, dpi);
         int gap = DialogLayout.Scale(DialogLayout.LineGap, dpi);
         int lineHeight = DialogLayout.Scale(DialogLayout.LineHeight, dpi);
+        int wrappedHeight = lineHeight * DialogLayout.WrappedLineCount;
         int comboHeight = DialogLayout.Scale(DialogLayout.ComboHeight, dpi);
 
         var prompt = DialogLayout.Prompt(clientWidth, dpi);
@@ -139,13 +140,31 @@ public class DialogLayoutTests
         Assert.Equal(lineHeight, prompt.Height);
 
         Assert.Equal(prompt.Y + prompt.Height + gap, hint.Y);
-        Assert.Equal(lineHeight, hint.Height);
+        Assert.Equal(wrappedHeight, hint.Height);
 
         Assert.Equal(hint.Y + hint.Height + gap, combo.Y);
         Assert.Equal(comboHeight, combo.Height);
 
         Assert.Equal(combo.Y + combo.Height + gap, status.Y);
-        Assert.Equal(lineHeight, status.Height);
+        Assert.Equal(wrappedHeight, status.Height);
+    }
+
+    [Theory]
+    [InlineData(96)]
+    [InlineData(120)]
+    [InlineData(144)]
+    [InlineData(192)]
+    public void HintAndStatusAreExactlyWrappedLineCountLineHeightsTall(int dpi)
+    {
+        int clientWidth = DialogLayout.Scale(DialogLayout.BaseWidth, dpi);
+        int lineHeight = DialogLayout.Scale(DialogLayout.LineHeight, dpi);
+        int expected = lineHeight * DialogLayout.WrappedLineCount;
+
+        var hint = DialogLayout.Hint(clientWidth, dpi);
+        var status = DialogLayout.Status(clientWidth, dpi);
+
+        Assert.Equal(expected, hint.Height);
+        Assert.Equal(expected, status.Height);
     }
 
     // ---- Buttons ----

@@ -11,14 +11,24 @@ internal readonly record struct LayoutRect(int X, int Y, int Width, int Height);
 internal static class DialogLayout
 {
     /// <summary>Design sizes, in 96-DPI units.</summary>
-    public const int BaseWidth = 460;
-    public const int BaseHeight = 210;
+    public const int BaseWidth = 520;
+    // margin + prompt(1 line) + gap + hint(2 lines) + gap + combo + gap + status(2 lines)
+    // + gap + buttons + margin
+    // = 16 + 20 + 10 + 40 + 10 + 34 + 10 + 40 + 10 + 30 + 16 = 236
+    public const int BaseHeight = 236;
     public const int Margin = 16;
     public const int LineGap = 10;
     public const int LineHeight = 20;
     public const int ComboHeight = 34;
     public const int ButtonWidth = 110;
     public const int ButtonHeight = 30;
+
+    /// <summary>
+    /// The hint and status labels no longer fit their (French, accented) text on one
+    /// line at <see cref="BaseWidth"/>, so both are laid out this many line-heights tall
+    /// and left to word-wrap instead of being widened further.
+    /// </summary>
+    public const int WrappedLineCount = 2;
 
     /// <summary>Scales a 96-DPI design value to the given DPI.</summary>
     public static int Scale(int value, int dpi)
@@ -46,9 +56,10 @@ internal static class DialogLayout
         int margin = Scale(Margin, dpi);
         int gap = Scale(LineGap, dpi);
         int lineHeight = Scale(LineHeight, dpi);
+        int hintHeight = lineHeight * WrappedLineCount;
         int width = FullWidth(clientWidth, margin);
-        int y = margin + lineHeight + gap;
-        return new LayoutRect(margin, y, width, lineHeight);
+        int y = margin + lineHeight + gap; // below the one-line Prompt
+        return new LayoutRect(margin, y, width, hintHeight);
     }
 
     public static LayoutRect Combo(int clientWidth, int dpi)
@@ -56,8 +67,9 @@ internal static class DialogLayout
         int margin = Scale(Margin, dpi);
         int gap = Scale(LineGap, dpi);
         int lineHeight = Scale(LineHeight, dpi);
+        int hintHeight = lineHeight * WrappedLineCount;
         int width = FullWidth(clientWidth, margin);
-        int y = margin + 2 * (lineHeight + gap);
+        int y = margin + lineHeight + gap + hintHeight + gap; // below Prompt then Hint
         return new LayoutRect(margin, y, width, Scale(ComboHeight, dpi));
     }
 
@@ -66,10 +78,12 @@ internal static class DialogLayout
         int margin = Scale(Margin, dpi);
         int gap = Scale(LineGap, dpi);
         int lineHeight = Scale(LineHeight, dpi);
+        int hintHeight = lineHeight * WrappedLineCount;
+        int statusHeight = lineHeight * WrappedLineCount;
         int comboHeight = Scale(ComboHeight, dpi);
         int width = FullWidth(clientWidth, margin);
-        int y = margin + 2 * (lineHeight + gap) + comboHeight + gap;
-        return new LayoutRect(margin, y, width, lineHeight);
+        int y = margin + lineHeight + gap + hintHeight + gap + comboHeight + gap; // below Combo
+        return new LayoutRect(margin, y, width, statusHeight);
     }
 
     public static LayoutRect ConfirmButton(int clientWidth, int clientHeight, int dpi)
