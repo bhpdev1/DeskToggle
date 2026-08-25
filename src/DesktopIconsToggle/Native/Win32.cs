@@ -290,6 +290,9 @@ internal static class Win32
     [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool SetWindowTextW(IntPtr hWnd, string lpString);
 
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+
     // ---- gdi32 ----
     [DllImport("gdi32.dll")]
     public static extern IntPtr GetStockObject(int fnObject);
@@ -305,6 +308,9 @@ internal static class Win32
     // ---- kernel32 ----
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     public static extern IntPtr GetModuleHandleW(string? lpModuleName);
+
+    [DllImport("kernel32.dll")]
+    public static extern uint GetCurrentProcessId();
 
     public static string GetClassName(IntPtr hWnd)
     {

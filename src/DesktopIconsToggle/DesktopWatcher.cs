@@ -25,13 +25,25 @@ internal sealed class DesktopWatcher : IDisposable
 
     public bool IsDesktopForeground { get; private set; }
 
+    private static readonly uint OwnProcessId = Win32.GetCurrentProcessId();
+
     /// <summary>
-    /// The app's own window. TrayIcon calls SetForegroundWindow on it before opening
-    /// the context menu, so it can legitimately take the foreground; treating that as
-    /// "the desktop lost the foreground" would delete the tray icon while the menu the
-    /// user just opened is still on screen.
+    /// True when the window belongs to this process. Our own windows legitimately take
+    /// the foreground — TrayIcon calls SetForegroundWindow before opening its menu, and
+    /// the hotkey capture dialog is a real window — and treating that as "the desktop
+    /// lost the foreground" would delete the tray icon while the user is interacting
+    /// with it, or strand it deleted once the dialog closes.
     /// </summary>
-    public IntPtr IgnoreWindow { get; set; }
+    private static bool IsOwnWindow(IntPtr hWnd)
+    {
+        if (hWnd == IntPtr.Zero)
+        {
+            return false;
+        }
+
+        _ = Win32.GetWindowThreadProcessId(hWnd, out uint processId);
+        return processId == OwnProcessId;
+    }
 
     public static bool IsDesktopWindow(IntPtr hWnd)
     {
@@ -67,12 +79,12 @@ internal sealed class DesktopWatcher : IDisposable
             return;
         }
 
-        if (hwnd == IgnoreWindow && hwnd != IntPtr.Zero)
+        if (Array.IndexOf(ShellClasses, Win32.GetClassName(hwnd)) >= 0)
         {
             return;
         }
 
-        if (Array.IndexOf(ShellClasses, Win32.GetClassName(hwnd)) >= 0)
+        if (IsOwnWindow(hwnd))
         {
             return;
         }
