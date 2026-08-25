@@ -19,7 +19,9 @@ internal static class Win32
     public const int WM_SYSKEYDOWN   = 0x0104;
     public const int WM_SETFONT      = 0x0030;
     public const int WM_ERASEBKGND   = 0x0014;
+    public const int WM_CTLCOLORBTN  = 0x0135;
     public const int WM_CTLCOLORSTATIC = 0x0138;
+    public const int WM_SETTINGCHANGE  = 0x001A;
 
     public const int WM_APP          = 0x8000;
     public const int WM_APP_TRAY     = WM_APP + 2;
@@ -47,7 +49,6 @@ internal static class Win32
     public const int  SM_CXSCREEN      = 0;
     public const int  SM_CYSCREEN      = 1;
     public const int  DEFAULT_GUI_FONT = 17;
-    public const int  COLOR_BTNFACE    = 15;
     public const int  COLOR_MENU       = 4;
     public const int  COLOR_MENUTEXT   = 7;
     public const int  IDC_ARROW        = 32512;
@@ -59,6 +60,9 @@ internal static class Win32
     public const uint MONITOR_DEFAULTTONEAREST = 2;
     public const uint BS_PUSHBUTTON    = 0;
     public const int  SW_HIDE          = 0;
+
+    // ---- shcore (monitor DPI) ----
+    public const int MDT_EFFECTIVE_DPI = 0;
 
     // ---- comctl32 ----
     public const uint ICC_STANDARD_CLASSES = 0x00004000;
@@ -418,6 +422,11 @@ internal static class Win32
     [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool GetMonitorInfoW(IntPtr hMonitor, ref MONITORINFO lpmi);
 
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool AdjustWindowRectExForDpi(ref RECT lpRect, uint dwStyle,
+        [MarshalAs(UnmanagedType.Bool)] bool bMenu, uint dwExStyle, uint dpi);
+
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool GetClientRect(IntPtr hWnd, out RECT lpRect);
@@ -483,10 +492,18 @@ internal static class Win32
     [DllImport("dwmapi.dll")]
     public static extern int DwmSetWindowAttribute(IntPtr hwnd, int dwAttribute, ref int pvAttribute, int cbAttribute);
 
+    // ---- shcore ----
+    [DllImport("shcore.dll")]
+    public static extern int GetDpiForMonitor(IntPtr hmonitor, int dpiType, out uint dpiX, out uint dpiY);
+
     // ---- comctl32 ----
     [DllImport("comctl32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool InitCommonControlsEx(ref INITCOMMONCONTROLSEX icce);
+
+    // ---- uxtheme ----
+    [DllImport("uxtheme.dll", CharSet = CharSet.Unicode)]
+    public static extern int SetWindowTheme(IntPtr hWnd, string? pszSubAppName, string? pszSubIdList);
 
     // ---- shell32 ----
     [DllImport("shell32.dll", CharSet = CharSet.Unicode)]

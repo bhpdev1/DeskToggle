@@ -238,6 +238,22 @@ internal static class Program
             return true;
         }
 
+        if (msg == Win32.WM_SETTINGCHANGE)
+        {
+            // lParam points to a string naming the setting that changed, but is not
+            // guaranteed to be set — Windows sends WM_SETTINGCHANGE for many other kinds
+            // of change too, with a null lParam being the common case for those.
+            string? setting = lParam == IntPtr.Zero ? null : Marshal.PtrToStringUni(lParam);
+            if (setting == "ImmersiveColorSet")
+            {
+                _tray?.OnSettingsChanged();
+            }
+
+            // Not ours alone to swallow: other listeners (and DefWindowProc) also care
+            // about this broadcast, so let it keep propagating.
+            return false;
+        }
+
         return false;
     }
 

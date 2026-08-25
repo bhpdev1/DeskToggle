@@ -1,3 +1,5 @@
+using DesktopIconsToggle.Native;
+
 namespace DesktopIconsToggle.Tests;
 
 public class DialogLayoutTests
@@ -254,5 +256,86 @@ public class DialogLayoutTests
 
         Assert.True(confirm.X < cancel.X);
         Assert.Equal(cancel.X - gap, confirm.X + confirm.Width);
+    }
+
+    // ---- Fix 1: genuine fit against a real window's client area, not the outer size
+    // fed back to itself ----
+
+    [Theory]
+    [InlineData(96)]
+    [InlineData(120)]
+    [InlineData(144)]
+    [InlineData(192)]
+    public void ButtonsClearTheStatusLineInsideTheRealClientAreaOfAWsCaptionSysMenuWindow(int dpi)
+    {
+        // WindowSize(dpi) is documented (Fix 1) as the desired *client* size.
+        // CreateWindowExW needs a larger *outer* size to end up with that much client
+        // area, once the WS_CAPTION | WS_SYSMENU chrome — the exact style HotkeyCapture
+        // creates the window with — is added via AdjustWindowRectExForDpi, the same API
+        // HotkeyCapture now calls before CreateWindowExW. Deriving the outer size for
+        // real here, instead of assuming "the window's size" and "the client size" are
+        // interchangeable, is the assertion the pre-fix suite was missing: every
+        // existing test above only ever fed WindowSize's own numbers back to itself as
+        // both the outer and the client quantity, which proves internal consistency but
+        // nothing about fit against a real window's actual client area.
+        (int clientWidth, int clientHeight) = DialogLayout.WindowSize(dpi);
+
+        const uint style = Win32.WS_CAPTION | Win32.WS_SYSMENU;
+        var rect = new Win32.RECT { Left = 0, Top = 0, Right = clientWidth, Bottom = clientHeight };
+        bool adjusted = Win32.AdjustWindowRectExForDpi(ref rect, style, false, 0, (uint)dpi);
+        Assert.True(adjusted);
+
+        int outerHeight = rect.Bottom - rect.Top;
+
+        // The chrome is real and non-trivial (tens of pixels, not one) — an outer
+        // window this much taller than the client size is exactly what the pre-fix
+        // code, which requested an outer size equal to the *client* size, failed to ask
+        // Windows for.
+        Assert.True(outerHeight > clientHeight);
+
+        var status = DialogLayout.Status(clientWidth, dpi);
+        var confirm = DialogLayout.ConfirmButton(clientWidth, clientHeight, dpi);
+        var cancel = DialogLayout.CancelButton(clientWidth, clientHeight, dpi);
+
+        Assert.True(confirm.Y > status.Y + status.Height,
+            $"confirm.Y={confirm.Y} must clear status bottom={status.Y + status.Height}");
+        Assert.True(cancel.Y > status.Y + status.Height,
+            $"cancel.Y={cancel.Y} must clear status bottom={status.Y + status.Height}");
+
+        Assert.True(confirm.Y + confirm.Height <= clientHeight);
+        Assert.True(cancel.Y + cancel.Height <= clientHeight);
+    }
+
+    [Theory]
+    [InlineData(96)]
+    [InlineData(120)]
+    [InlineData(144)]
+    [InlineData(192)]
+    public void BugRegression_TreatingTheClientSizeAsAnOuterSizeWouldHaveOverlappedTheStatusLine(int dpi)
+    {
+        // Reconstructs the exact pre-fix bug numerically: DialogLayout.WindowSize's
+        // numbers used to be handed straight to CreateWindowExW as the *outer* size.
+        // A WS_CAPTION | WS_SYSMENU window created at that outer height has a real
+        // client height smaller by the chrome AdjustWindowRectExForDpi reports for the
+        // same style — computed the same way the fix does, but subtracted rather than
+        // added, to reconstruct exactly what GetClientRect would have returned under
+        // the old bug.
+        (int clientWidth, int nominalOuterHeight) = DialogLayout.WindowSize(dpi);
+
+        const uint style = Win32.WS_CAPTION | Win32.WS_SYSMENU;
+        var rect = new Win32.RECT { Left = 0, Top = 0, Right = clientWidth, Bottom = nominalOuterHeight };
+        Win32.AdjustWindowRectExForDpi(ref rect, style, false, 0, (uint)dpi);
+        int chromeHeight = (rect.Bottom - rect.Top) - nominalOuterHeight;
+
+        int realClientHeightUnderTheOldBug = nominalOuterHeight - chromeHeight;
+
+        var status = DialogLayout.Status(clientWidth, dpi);
+        var confirm = DialogLayout.ConfirmButton(clientWidth, realClientHeightUnderTheOldBug, dpi);
+
+        // This is the bug, made concrete: the button's top edge does not clear the
+        // status line's bottom edge once the window's real (chrome-reduced) client
+        // height is used instead of the nominal size the old code mistook for it.
+        Assert.True(confirm.Y <= status.Y + status.Height,
+            $"expected the old bug to overlap: confirm.Y={confirm.Y}, status bottom={status.Y + status.Height}");
     }
 }

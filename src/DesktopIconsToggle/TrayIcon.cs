@@ -57,6 +57,13 @@ internal sealed class TrayIcon : IDisposable
 
     public event Action<int>? CommandChosen;
 
+    /// <summary>
+    /// Forwards a system settings change (light/dark theme flip) to the cached menu
+    /// icons, so the next time the menu is shown its icons are re-rendered at the
+    /// current system menu colours instead of the ones baked in at first render.
+    /// </summary>
+    public void OnSettingsChanged() => _menuIcons.Invalidate();
+
     public void SetVisible(bool visible)
     {
         if (visible == _visible)

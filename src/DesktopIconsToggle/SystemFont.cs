@@ -46,7 +46,7 @@ internal sealed class SystemFont : IDisposable
     /// pixels) before the whole magnitude is scaled to the target DPI, so emphasis and
     /// DPI scaling compose in a single rounding step.
     /// </summary>
-    private static int ScaledHeight(int lfHeight, int dpi, int extraPoints)
+    public static int ScaledHeight(int lfHeight, int dpi, int extraPoints)
     {
         int magnitude96 = Math.Abs(lfHeight) + (int)Math.Round(extraPoints * 96.0 / 72.0, MidpointRounding.AwayFromZero);
         int scaled = (int)Math.Round(magnitude96 * (dpi / 96.0), MidpointRounding.AwayFromZero);

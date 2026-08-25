@@ -8,7 +8,11 @@ namespace DesktopIconsToggle;
 /// window's DPI and cached by glyph. Deliberately painted with the system menu colours
 /// (<c>COLOR_MENU</c> / <c>COLOR_MENUTEXT</c>), not the app's own <see cref="Theme"/>:
 /// Windows draws the menu itself with those colours, so matching them is what makes the
-/// icons follow light and dark mode automatically.
+/// icons look right in the currently active theme. That match is only as fresh as the
+/// last render, though — the colours are baked into each bitmap once and then cached
+/// indefinitely, so a theme change while the app is running needs an explicit
+/// <see cref="Invalidate"/> to be reflected; <see cref="Get"/> alone will keep returning
+/// the stale-coloured bitmap from before the change.
 /// </summary>
 /// <remarks>
 /// Needs "Segoe Fluent Icons" (Windows 11) or, failing that, "Segoe MDL2 Assets"
@@ -51,6 +55,26 @@ internal sealed class MenuIcons : IDisposable
         IntPtr bitmap = Render(glyph);
         _cache[glyph] = bitmap;
         return bitmap;
+    }
+
+    /// <summary>
+    /// Deletes every cached bitmap and clears the cache, leaving this instance otherwise
+    /// usable — the next <see cref="Get"/> re-renders at the system menu colours current
+    /// at that moment. Call when the system theme changes (see
+    /// <c>WM_SETTINGCHANGE</c>/<c>ImmersiveColorSet</c> in <c>Program</c>), since otherwise
+    /// every icon keeps the colours baked in at first render for the lifetime of the app.
+    /// </summary>
+    public void Invalidate()
+    {
+        foreach (IntPtr bitmap in _cache.Values)
+        {
+            if (bitmap != IntPtr.Zero)
+            {
+                Win32.DeleteObject(bitmap);
+            }
+        }
+
+        _cache.Clear();
     }
 
     private static IntPtr CreateIconFont(int size)

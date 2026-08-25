@@ -80,18 +80,25 @@ internal static class HotkeyCapture
         s_confirmButtonHandle = IntPtr.Zero;
         s_cancelButtonHandle = IntPtr.Zero;
 
-        // Read fresh every call rather than cached: the user may have flipped Windows'
-        // light/dark preference since the last time this dialog was shown.
-        s_theme = new Theme(new RegistryThemeSource());
-        s_theme.Refresh();
-        s_backgroundBrush = Win32.CreateSolidBrush(s_theme.Background);
-
-        int dpi = (int)Win32.GetDpiForSystem();
+        // Resolved once, early, before anything else: the monitor decides the DPI, and
+        // both must be settled before layout or window creation touches either. Resolving
+        // them separately (system DPI now, monitor-under-cursor later) is exactly the bug
+        // this fixes — on a mixed-DPI multi-monitor setup the two can disagree.
+        IntPtr monitor = ResolveMonitor();
+        int dpi = ResolveDpi(monitor);
 
         try
         {
+            // Read fresh every call rather than cached: the user may have flipped Windows'
+            // light/dark preference since the last time this dialog was shown. Created
+            // inside the try so a registry failure other than the two IThemeSource guards
+            // against (UnauthorizedAccessException, SecurityException) still lands in this
+            // method's own cleanup instead of escaping TryCapture entirely.
+            s_theme = new Theme(new RegistryThemeSource());
+            s_backgroundBrush = Win32.CreateSolidBrush(s_theme.Background);
+
             EnsureClassRegistered();
-            CreateCaptureWindow(owner, dpi);
+            CreateCaptureWindow(owner, monitor, dpi);
 
             Win32.ShowWindow(s_hwnd, Win32.SW_SHOW);
             Win32.UpdateWindow(s_hwnd);
@@ -176,19 +183,30 @@ internal static class HotkeyCapture
         }
     }
 
-    private static void CreateCaptureWindow(IntPtr owner, int dpi)
+    private static void CreateCaptureWindow(IntPtr owner, IntPtr monitor, int dpi)
     {
         IntPtr hInstance = Win32.GetModuleHandleW(null);
-
-        (int width, int height) = DialogLayout.WindowSize(dpi);
-        (int x, int y) = ComputeCenteredPosition(width, height);
 
         // Caption + system menu (gives the close button) but no WS_THICKFRAME and no
         // WS_MINIMIZEBOX/WS_MAXIMIZEBOX: not resizable, not minimisable.
         const uint style = Win32.WS_CAPTION | Win32.WS_SYSMENU;
+        const uint exStyle = 0;
 
-        s_hwnd = Win32.CreateWindowExW(0, ClassName, "Raccourci clavier", style,
-                                       x, y, width, height,
+        // DialogLayout.WindowSize is the desired client size. CreateWindowExW wants the
+        // outer size, which is larger by the caption and borders — passing the client
+        // size straight through there is exactly the bug this fixes, moved to the other
+        // axis from the one the client-rect re-read below fixes for.
+        (int desiredClientWidth, int desiredClientHeight) = DialogLayout.WindowSize(dpi);
+
+        var outerRect = new Win32.RECT { Left = 0, Top = 0, Right = desiredClientWidth, Bottom = desiredClientHeight };
+        Win32.AdjustWindowRectExForDpi(ref outerRect, style, false, exStyle, (uint)dpi);
+        int outerWidth = outerRect.Right - outerRect.Left;
+        int outerHeight = outerRect.Bottom - outerRect.Top;
+
+        (int x, int y) = ComputeCenteredPosition(monitor, outerWidth, outerHeight);
+
+        s_hwnd = Win32.CreateWindowExW(exStyle, ClassName, "Raccourci clavier", style,
+                                       x, y, outerWidth, outerHeight,
                                        owner, IntPtr.Zero, hInstance, IntPtr.Zero);
 
         if (s_hwnd == IntPtr.Zero)
@@ -202,9 +220,11 @@ internal static class HotkeyCapture
         s_font = new SystemFont(dpi);
         s_comboFont = new SystemFont(dpi, extraPoints: 6);
 
-        // Client size, not the outer window size requested above: the outer size includes
-        // the caption and borders, and laying controls out against it is exactly the
-        // centring bug this rebuild fixes.
+        // Re-read the actual client rect rather than trusting desiredClientWidth/Height
+        // above: AdjustWindowRectExForDpi's outer size is what was requested, not
+        // necessarily what Windows granted, so laying out controls against the size we
+        // asked for instead of the size we got is the same class of mismatch this method
+        // exists to avoid.
         Win32.GetClientRect(s_hwnd, out var clientRect);
         int clientWidth = clientRect.Right - clientRect.Left;
         int clientHeight = clientRect.Bottom - clientRect.Top;
@@ -246,6 +266,13 @@ internal static class HotkeyCapture
             cancelRect.X, cancelRect.Y, cancelRect.Width, cancelRect.Height,
             s_hwnd, new IntPtr(IdCancelButton), hInstance, IntPtr.Zero);
 
+        // Standard BUTTON controls do not follow DWMWA_USE_IMMERSIVE_DARK_MODE (that only
+        // darkens the frame) or WM_CTLCOLORSTATIC (buttons aren't STATIC controls): without
+        // this they stay light-themed on a dark background. HRESULT ignored — it fails
+        // harmlessly on Windows builds that do not know the "DarkMode_Explorer" class.
+        ApplyButtonTheme(s_confirmButtonHandle);
+        ApplyButtonTheme(s_cancelButtonHandle);
+
         // Created once, up front — not on each state transition — then hidden until a
         // combination has actually passed the probe and there is something to confirm.
         Win32.ShowWindow(s_confirmButtonHandle, Win32.SW_HIDE);
@@ -260,16 +287,43 @@ internal static class HotkeyCapture
     }
 
     /// <summary>
-    /// Centres the window on the work area of the monitor under the cursor, so a
-    /// multi-monitor user working on their second screen does not get the dialog thrown
-    /// onto the primary one. Falls back to the primary screen if the monitor info cannot
-    /// be read, which should not happen in practice but must not throw if it does.
+    /// Resolves the monitor under the cursor, so a multi-monitor user working on their
+    /// second screen gets the dialog on that screen rather than the primary one. Resolved
+    /// once, early in <see cref="TryCapture"/>, and reused for both the DPI lookup and the
+    /// centring below so the two can never disagree about which screen they mean.
     /// </summary>
-    private static (int X, int Y) ComputeCenteredPosition(int width, int height)
+    private static IntPtr ResolveMonitor()
     {
         Win32.GetCursorPos(out var cursor);
-        IntPtr monitor = Win32.MonitorFromPoint(cursor, Win32.MONITOR_DEFAULTTONEAREST);
+        return Win32.MonitorFromPoint(cursor, Win32.MONITOR_DEFAULTTONEAREST);
+    }
 
+    /// <summary>
+    /// The given monitor's own effective DPI, not the system (primary monitor) DPI: on a
+    /// mixed-DPI multi-monitor setup the two can disagree, and since there is no
+    /// WM_DPICHANGED handler here, a wrong DPI at creation time is never corrected later.
+    /// Falls back to GetDpiForSystem when the monitor handle is invalid or the per-monitor
+    /// lookup fails (checked via its HRESULT), which should not happen in practice but
+    /// must not throw if it does.
+    /// </summary>
+    private static int ResolveDpi(IntPtr monitor)
+    {
+        if (monitor != IntPtr.Zero &&
+            Win32.GetDpiForMonitor(monitor, Win32.MDT_EFFECTIVE_DPI, out uint dpiX, out _) == 0) // S_OK
+        {
+            return (int)dpiX;
+        }
+
+        return (int)Win32.GetDpiForSystem();
+    }
+
+    /// <summary>
+    /// Centres the window on the work area of the given (already-resolved) monitor.
+    /// Falls back to the primary screen if the monitor info cannot be read, which should
+    /// not happen in practice but must not throw if it does.
+    /// </summary>
+    private static (int X, int Y) ComputeCenteredPosition(IntPtr monitor, int width, int height)
+    {
         var info = new Win32.MONITORINFO { cbSize = (uint)Marshal.SizeOf<Win32.MONITORINFO>() };
 
         if (monitor == IntPtr.Zero || !Win32.GetMonitorInfoW(monitor, ref info))
@@ -303,6 +357,17 @@ internal static class HotkeyCapture
             int darkMode = 1;
             Win32.DwmSetWindowAttribute(s_hwnd, Win32.DWMWA_USE_IMMERSIVE_DARK_MODE, ref darkMode, sizeof(int));
         }
+    }
+
+    /// <summary>
+    /// Switches a standard BUTTON control's visual-style class so it follows the current
+    /// theme. Return value ignored: SetWindowTheme fails harmlessly on Windows builds that
+    /// do not recognise "DarkMode_Explorer", leaving the button in its default appearance.
+    /// </summary>
+    private static void ApplyButtonTheme(IntPtr button)
+    {
+        string themeName = s_theme!.IsDark ? "DarkMode_Explorer" : "Explorer";
+        Win32.SetWindowTheme(button, themeName, null);
     }
 
     private static void CloseWindow(bool accepted)
@@ -358,8 +423,13 @@ internal static class HotkeyCapture
                 return new IntPtr(1);
             }
 
-            if (msg == Win32.WM_CTLCOLORSTATIC)
+            if (msg == Win32.WM_CTLCOLORSTATIC || msg == Win32.WM_CTLCOLORBTN)
             {
+                // Same (hdc, hwndControl) shape for both messages, and the same fix: paint
+                // the control's background/text through the theme rather than leaving the
+                // default (light) system colours, which is what created the seam around
+                // buttons in dark mode — the buttons themselves are separately re-themed
+                // via SetWindowTheme in ApplyButtonTheme.
                 return HandleCtlColorStatic(wParam, lParam);
             }
 

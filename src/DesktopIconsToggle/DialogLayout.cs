@@ -24,7 +24,13 @@ internal static class DialogLayout
     public static int Scale(int value, int dpi)
         => (int)Math.Round(value * (double)dpi / 96.0, MidpointRounding.AwayFromZero);
 
-    /// <summary>The window's outer size to request for a given DPI, before client adjustment.</summary>
+    /// <summary>
+    /// The dialog's desired client size at a given DPI — the size every other method in
+    /// this class lays out against. This is not the size to pass to CreateWindowExW: the
+    /// caller must convert it to an outer window size (e.g. via AdjustWindowRectExForDpi,
+    /// using the same style/DPI) before creating the window, since the outer size also
+    /// includes the caption and borders.
+    /// </summary>
     public static (int Width, int Height) WindowSize(int dpi)
         => (Scale(BaseWidth, dpi), Scale(BaseHeight, dpi));
 
