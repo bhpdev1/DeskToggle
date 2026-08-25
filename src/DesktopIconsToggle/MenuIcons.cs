@@ -39,37 +39,52 @@ internal sealed class MenuIcons : IDisposable
 
     private readonly int _size;
     private readonly IntPtr _font;
-    private readonly Dictionary<(char Glyph, uint Color), IntPtr> _cache = new();
+    private readonly Theme _theme;
+    private readonly Dictionary<(char Glyph, uint Color, byte Alpha), IntPtr> _cache = new();
     private uint? _accentColor;
     private bool _disposed;
 
-    public MenuIcons(int dpi)
+    public MenuIcons(int dpi, Theme theme)
     {
         _size = 16 * dpi / 96;
         _font = CreateIconFont(_size);
+        _theme = theme;
     }
 
     /// <summary>
-    /// A cached bitmap for the glyph rendered in the given 0x00RRGGBB colour, sized for
-    /// the menu, or <see cref="IntPtr.Zero"/> when the icon font is unavailable — the
-    /// caller then shows a text-only menu.
+    /// A cached bitmap for the glyph rendered in the given 0x00RRGGBB colour at the given
+    /// alpha (0-255), sized for the menu, or <see cref="IntPtr.Zero"/> when the icon font
+    /// is unavailable — the caller then shows a text-only menu.
     /// </summary>
-    public IntPtr Get(char glyph, uint color)
+    public IntPtr Get(char glyph, uint color, byte alpha)
     {
         if (_font == IntPtr.Zero)
         {
             return IntPtr.Zero;
         }
 
-        var key = (glyph, color);
+        var key = (glyph, color, alpha);
         if (_cache.TryGetValue(key, out IntPtr cached))
         {
             return cached;
         }
 
-        IntPtr bitmap = Render(glyph, color);
+        IntPtr bitmap = Render(glyph, color, alpha);
         _cache[key] = bitmap;
         return bitmap;
+    }
+
+    /// <summary>
+    /// Lifts or darkens <paramref name="rgbColor"/> (packed 0x00RRGGBB, the form used
+    /// everywhere else in this type) just enough to contrast against the current theme's
+    /// menu background, via <see cref="IconPalette.EnsureContrast"/> — which works in
+    /// COLORREF (0x00BBGGRR) terms, so the colour is byte-swapped there and back.
+    /// </summary>
+    public uint Contrast(uint rgbColor)
+    {
+        uint colorRef = SwapRedAndBlue(rgbColor);
+        uint corrected = IconPalette.EnsureContrast(colorRef, _theme.IsDark);
+        return SwapRedAndBlue(corrected);
     }
 
     /// <summary>
@@ -96,13 +111,14 @@ internal sealed class MenuIcons : IDisposable
     }
 
     /// <summary>
-    /// Deletes every cached bitmap and clears the cache, and forgets the memoized
-    /// Windows accent colour so the next call to <see cref="AccentColor"/> re-reads it
-    /// via <c>DwmGetColorizationColor</c> instead of keeping the value read at first use.
-    /// Call when the system settings change (see
+    /// Deletes every cached bitmap and clears the cache, forgets the memoized Windows
+    /// accent colour so the next call to <see cref="AccentColor"/> re-reads it via
+    /// <c>DwmGetColorizationColor</c> instead of keeping the value read at first use, and
+    /// re-reads the light/dark preference so a theme flip is picked up by the next
+    /// <see cref="Contrast"/> call. Call when the system settings change (see
     /// <c>WM_SETTINGCHANGE</c>/<c>ImmersiveColorSet</c> in <c>Program</c>) — the glyph
     /// bitmaps' own colours no longer need this to stay correct (they carry real alpha
-    /// and are keyed by colour), but the memoized accent colour does.
+    /// and are keyed by colour and alpha), but the memoized accent colour and theme do.
     /// </summary>
     public void Invalidate()
     {
@@ -116,6 +132,7 @@ internal sealed class MenuIcons : IDisposable
 
         _cache.Clear();
         _accentColor = null;
+        _theme.Refresh();
     }
 
     private static IntPtr CreateIconFont(int size)
@@ -193,9 +210,9 @@ internal sealed class MenuIcons : IDisposable
     /// Renders <paramref name="glyph"/> into a 32-bit top-down DIB section: white glyph
     /// on a black background, GDI text mode (no native alpha), then walks the raw pixels
     /// via <see cref="Premultiply"/> to turn that greyscale coverage into a premultiplied
-    /// BGRA bitmap coloured for <paramref name="color"/>.
+    /// BGRA bitmap coloured for <paramref name="color"/> at <paramref name="alpha"/>.
     /// </summary>
-    private IntPtr Render(char glyph, uint color)
+    private IntPtr Render(char glyph, uint color, byte alpha)
     {
         IntPtr screenDc = Win32.GetDC(IntPtr.Zero);
         if (screenDc == IntPtr.Zero)
@@ -252,7 +269,7 @@ internal sealed class MenuIcons : IDisposable
                 // bitmap is deleted: while selected, the DC still owns it.
                 Win32.SelectObject(memDc, previousBitmap);
 
-                Premultiply(bits, _size, color);
+                Premultiply(bits, _size, color, alpha);
 
                 return bitmap;
             }
@@ -271,11 +288,14 @@ internal sealed class MenuIcons : IDisposable
     /// Walks a <paramref name="size"/> x <paramref name="size"/> 32-bit BGRA buffer whose
     /// blue byte currently holds white-on-black text coverage (grey, since B=G=R after
     /// GDI's antialiasing) and rewrites each pixel as premultiplied BGRA for
-    /// <paramref name="color"/>: alpha <c>a</c> is the coverage, and each channel becomes
-    /// <c>channel * a / 255</c>. A fully covered pixel (a=255) becomes the opaque chosen
-    /// colour; a fully uncovered one (a=0) becomes all-zero, i.e. fully transparent.
+    /// <paramref name="color"/> at <paramref name="alpha"/>: the glyph's own coverage
+    /// <c>coverage</c> is first scaled by the requested <paramref name="alpha"/> (so a
+    /// dimmed, inactive icon is just this multiplied down), giving the pixel's true alpha
+    /// <c>a</c>; each channel then becomes <c>channel * a / 255</c>. A fully covered,
+    /// fully opaque pixel (a=255) becomes the opaque chosen colour; a fully uncovered one
+    /// (a=0) becomes all-zero, i.e. fully transparent.
     /// </summary>
-    private static unsafe void Premultiply(IntPtr bits, int size, uint color)
+    private static unsafe void Premultiply(IntPtr bits, int size, uint color, byte alpha)
     {
         byte r = (byte)((color >> 16) & 0xFF);
         byte g = (byte)((color >> 8) & 0xFF);
@@ -286,7 +306,8 @@ internal sealed class MenuIcons : IDisposable
         for (int i = 0; i < count; i++)
         {
             byte* pixel = pixels + i * 4;
-            byte a = pixel[0]; // blue byte carries the glyph's antialiased coverage
+            byte coverage = pixel[0]; // blue byte carries the glyph's antialiased coverage
+            byte a = (byte)(coverage * alpha / 255);
             pixel[0] = (byte)(b * a / 255);
             pixel[1] = (byte)(g * a / 255);
             pixel[2] = (byte)(r * a / 255);
@@ -294,14 +315,21 @@ internal sealed class MenuIcons : IDisposable
         }
     }
 
-    /// <summary>Converts a COLORREF (0x00bbggrr, red in the low byte) to packed 0x00RRGGBB.</summary>
-    private static uint ToRgb(uint colorRef)
+    /// <summary>
+    /// Swaps the red and blue bytes of a packed colour. This is the same operation in
+    /// both directions — COLORREF (0x00bbggrr) to packed 0x00RRGGBB, or back again —
+    /// because exchanging two fixed byte positions is its own inverse.
+    /// </summary>
+    private static uint SwapRedAndBlue(uint color)
     {
-        byte r = (byte)(colorRef & 0xFF);
-        byte g = (byte)((colorRef >> 8) & 0xFF);
-        byte b = (byte)((colorRef >> 16) & 0xFF);
-        return ((uint)r << 16) | ((uint)g << 8) | b;
+        uint low = color & 0xFF;
+        uint mid = (color >> 8) & 0xFF;
+        uint high = (color >> 16) & 0xFF;
+        return (low << 16) | (mid << 8) | high;
     }
+
+    /// <summary>Converts a COLORREF (0x00bbggrr, red in the low byte) to packed 0x00RRGGBB.</summary>
+    private static uint ToRgb(uint colorRef) => SwapRedAndBlue(colorRef);
 
     public void Dispose()
     {

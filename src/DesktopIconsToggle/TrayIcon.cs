@@ -39,7 +39,8 @@ internal sealed class TrayIcon : IDisposable
                                         Win32.IMAGE_ICON, 0, 0,
                                         Win32.LR_DEFAULTSIZE | Win32.LR_SHARED);
 
-        _menuIcons = new MenuIcons((int)Win32.GetDpiForWindow(ownerWindow));
+        var theme = new Theme(new RegistryThemeSource());
+        _menuIcons = new MenuIcons((int)Win32.GetDpiForWindow(ownerWindow), theme);
 
         _data = new Win32.NOTIFYICONDATAW
         {
@@ -112,7 +113,7 @@ internal sealed class TrayIcon : IDisposable
         {
             Win32.AppendMenuW(menu, Win32.MF_STRING, new UIntPtr(CmdToggle),
                               state.IconsVisible ? "Masquer les icônes" : "Afficher les icônes");
-            SetItemIcon(menu, CmdToggle, GlyphEye, MenuIcons.NeutralColor);
+            SetItemIcon(menu, CmdToggle, GlyphEye, MenuIcons.NeutralColor, 255);
 
             Win32.AppendMenuW(menu, Win32.MF_SEPARATOR, UIntPtr.Zero, null);
 
@@ -122,7 +123,7 @@ internal sealed class TrayIcon : IDisposable
 
             Win32.AppendMenuW(menu, Win32.MF_STRING, new UIntPtr(CmdChangeHotkey),
                               $"Raccourci : {state.HotkeyLabel}…");
-            SetItemIcon(menu, CmdChangeHotkey, GlyphKeyboard, MenuIcons.NeutralColor);
+            SetItemIcon(menu, CmdChangeHotkey, GlyphKeyboard, MenuIcons.NeutralColor, 255);
 
             Win32.AppendMenuW(menu, Win32.MF_STRING | (state.AutostartEnabled ? Win32.MF_CHECKED : 0),
                               new UIntPtr(CmdAutostart), "Démarrage automatique");
@@ -131,7 +132,7 @@ internal sealed class TrayIcon : IDisposable
             Win32.AppendMenuW(menu, Win32.MF_SEPARATOR, UIntPtr.Zero, null);
 
             Win32.AppendMenuW(menu, Win32.MF_STRING, new UIntPtr(CmdQuit), "Quitter");
-            SetItemIcon(menu, CmdQuit, GlyphQuit, MenuIcons.RedColor);
+            SetItemIcon(menu, CmdQuit, GlyphQuit, _menuIcons.Contrast(MenuIcons.RedColor), 255);
 
             Win32.GetCursorPos(out var cursor);
             // Required so the menu closes when the user clicks elsewhere.
@@ -161,9 +162,9 @@ internal sealed class TrayIcon : IDisposable
     /// (<see cref="MenuIcons.Get"/> returns <see cref="IntPtr.Zero"/>) so the item
     /// degrades to text-only rather than showing an empty gutter.
     /// </summary>
-    private void SetItemIcon(IntPtr menu, int commandId, char glyph, uint color)
+    private void SetItemIcon(IntPtr menu, int commandId, char glyph, uint color, byte alpha)
     {
-        IntPtr bitmap = _menuIcons.Get(glyph, color);
+        IntPtr bitmap = _menuIcons.Get(glyph, color, alpha);
         if (bitmap == IntPtr.Zero)
         {
             return;
@@ -185,13 +186,17 @@ internal sealed class TrayIcon : IDisposable
     /// picks between them according to the item's <c>MF_CHECKED</c> state (set by the
     /// caller in the <c>AppendMenuW</c> flags) instead of drawing a native check mark —
     /// <c>hbmpItem</c> and the check-mark gutter cannot coexist, so this is the only way
-    /// to keep the item's checked/unchecked state visible once it also has an icon. A
-    /// no-op when the icon font is unavailable, leaving the native check mark in place.
+    /// to keep the item's checked/unchecked state visible once it also has an icon. The
+    /// unchecked state is the neutral colour dimmed to <see cref="IconPalette.InactiveAlpha"/>
+    /// rather than a duller hue, since an accent colour can already be too muted to read as
+    /// "on" by itself (see <see cref="IconPalette"/>); the checked state is the accent
+    /// colour, contrast-corrected, at full alpha. A no-op when the icon font is
+    /// unavailable, leaving the native check mark in place.
     /// </summary>
     private void SetItemCheckIcons(IntPtr menu, int commandId, char glyph)
     {
-        IntPtr unchecked_ = _menuIcons.Get(glyph, MenuIcons.NeutralColor);
-        IntPtr checked_ = _menuIcons.Get(glyph, _menuIcons.AccentColor());
+        IntPtr unchecked_ = _menuIcons.Get(glyph, MenuIcons.NeutralColor, IconPalette.InactiveAlpha);
+        IntPtr checked_ = _menuIcons.Get(glyph, _menuIcons.Contrast(_menuIcons.AccentColor()), 255);
         if (unchecked_ == IntPtr.Zero || checked_ == IntPtr.Zero)
         {
             return;
