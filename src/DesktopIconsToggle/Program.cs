@@ -10,7 +10,6 @@ internal static class Program
     private static AppWindow? _window;
     private static TrayIcon? _tray;
     private static DesktopWatcher? _watcher;
-    private static MouseHook? _mouseHook;
     private static Autostart? _autostart;
     private static uint _taskbarCreatedMessage;
     private static IntPtr _windowHandle;
@@ -53,16 +52,7 @@ internal static class Program
             tray.SetVisible(true);
         }
 
-        var mouseHook = new MouseHook(window.Handle);
-        _mouseHook = mouseHook;
-        if (!mouseHook.Install())
-        {
-            tray.UpdateTooltip("Icônes du Bureau — raccourci souris indisponible");
-        }
-        else
-        {
-            RefreshTooltip();
-        }
+        RefreshTooltip();
 
         AppDomain.CurrentDomain.ProcessExit += (_, _) => Shutdown();
 
@@ -78,12 +68,6 @@ internal static class Program
         {
             Win32.KillTimer(_windowHandle, TooltipTimerId);
             RefreshTooltip();
-            return true;
-        }
-
-        if (msg == Win32.WM_APP_TOGGLE)
-        {
-            ToggleIcons();
             return true;
         }
 
@@ -179,11 +163,9 @@ internal static class Program
         }
 
         _tray?.Dispose();
-        _mouseHook?.Dispose();
         _watcher?.Dispose();
         _window?.Dispose();
         _tray = null;
-        _mouseHook = null;
         _watcher = null;
         _window = null;
         _windowHandle = IntPtr.Zero;

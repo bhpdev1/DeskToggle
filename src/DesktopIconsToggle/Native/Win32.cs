@@ -14,20 +14,16 @@ internal static class Win32
     public const int WM_TIMER        = 0x0113;
     public const int WM_LBUTTONUP    = 0x0202;
     public const int WM_RBUTTONUP    = 0x0205;
-    public const int WM_MBUTTONDOWN  = 0x0207;
 
     public const int WM_APP          = 0x8000;
-    public const int WM_APP_TOGGLE   = WM_APP + 1;
     public const int WM_APP_TRAY     = WM_APP + 2;
 
     /// <summary>Explorer's "Show desktop icons" command id.</summary>
     public const int TOGGLE_DESKTOP_ICONS = 0x7402;
 
     // ---- hooks ----
-    public const int  WH_MOUSE_LL             = 14;
     public const uint EVENT_SYSTEM_FOREGROUND = 0x0003;
     public const uint WINEVENT_OUTOFCONTEXT   = 0x0000;
-    public const uint GA_PARENT               = 1;
 
     // ---- windows ----
     public static readonly IntPtr HWND_MESSAGE = new(-3);
@@ -64,16 +60,6 @@ internal static class Win32
         public IntPtr lParam;
         public uint   time;
         public POINT  pt;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    public struct MSLLHOOKSTRUCT
-    {
-        public POINT  pt;
-        public uint   mouseData;
-        public uint   flags;
-        public uint   time;
-        public IntPtr dwExtraInfo;
     }
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
@@ -115,7 +101,6 @@ internal static class Win32
     }
 
     public delegate IntPtr WndProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
-    public delegate IntPtr HookProc(int nCode, IntPtr wParam, IntPtr lParam);
     public delegate void   WinEventProc(IntPtr hWinEventHook, uint eventType, IntPtr hwnd,
                                         int idObject, int idChild, uint dwEventThread, uint dwmsEventTime);
     public delegate bool   EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
@@ -147,17 +132,8 @@ internal static class Win32
     public static extern bool SetForegroundWindow(IntPtr hWnd);
 
     [DllImport("user32.dll")]
-    public static extern IntPtr WindowFromPoint(POINT point);
-
-    [DllImport("user32.dll")]
-    public static extern IntPtr GetAncestor(IntPtr hWnd, uint gaFlags);
-
-    [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
-
-    [DllImport("user32.dll")]
-    public static extern uint GetDoubleClickTime();
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     public static extern ushort RegisterClassExW(ref WNDCLASSEXW lpwcx);
@@ -189,16 +165,6 @@ internal static class Win32
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     public static extern uint RegisterWindowMessageW(string lpString);
-
-    [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-    public static extern IntPtr SetWindowsHookExW(int idHook, HookProc lpfn, IntPtr hMod, uint dwThreadId);
-
-    [DllImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static extern bool UnhookWindowsHookEx(IntPtr hhk);
-
-    [DllImport("user32.dll")]
-    public static extern IntPtr CallNextHookEx(IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
 
     [DllImport("user32.dll")]
     public static extern IntPtr SetWinEventHook(uint eventMin, uint eventMax, IntPtr hmodWinEventProc,
@@ -246,9 +212,6 @@ internal static class Win32
     // ---- kernel32 ----
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     public static extern IntPtr GetModuleHandleW(string? lpModuleName);
-
-    [DllImport("kernel32.dll")]
-    public static extern uint GetTickCount();
 
     public static string GetClassName(IntPtr hWnd)
     {
