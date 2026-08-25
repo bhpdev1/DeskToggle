@@ -8,17 +8,24 @@ internal static class Program
     private const nuint TooltipTimerId = 1;
 
     // Tried in order the first time the app runs, and whenever the user has not chosen a
-    // combination themselves. Win+Maj+D is unassigned by Windows — unlike Win+D (show
-    // desktop) and Win+Alt+D (date and time) — and the two Ctrl+Alt variants are not
-    // reservable by the system at all, so one of the three will be granted.
+    // combination themselves.
+    //
+    // Deliberately no Windows-key combination here. The shell processes Win+<key> through
+    // its own keyboard hook, ahead of registered-hotkey dispatch, so RegisterHotKey can
+    // report success for a combination that then never fires — the registration is held
+    // but the keystroke is consumed upstream. That was observed with Win+Maj+D: registered
+    // (a second RegisterHotKey from another process was refused with
+    // ERROR_HOTKEY_ALREADY_REGISTERED) yet no WM_HOTKEY ever arrived, while posting
+    // WM_HOTKEY by hand toggled correctly. Ctrl+Alt combinations are dispatched normally.
     private static readonly (uint Modifiers, uint VirtualKey)[] HotkeyFallbacks =
     [
-        (Win32.MOD_WIN | Win32.MOD_SHIFT, VirtualKeyD),
         (Win32.MOD_CONTROL | Win32.MOD_ALT, VirtualKeyD),
         (Win32.MOD_CONTROL | Win32.MOD_ALT | Win32.MOD_SHIFT, VirtualKeyD),
+        (Win32.MOD_CONTROL | Win32.MOD_ALT | Win32.MOD_SHIFT, VirtualKeyF9),
     ];
 
     private const uint VirtualKeyD = 0x44;
+    private const uint VirtualKeyF9 = 0x78;
 
     // Explorer needs ~150 ms to settle a posted toggle (see the reconciliation timer
     // below); 300 ms leaves comfortable margin so a second press can never land while the

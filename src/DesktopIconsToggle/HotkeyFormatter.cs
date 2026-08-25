@@ -29,7 +29,7 @@ internal static class HotkeyFormatter
 
         if ((modifiers & ModShift) != 0)
         {
-            parts.Add("Shift");
+            parts.Add("Maj");
         }
 
         parts.Add(KeyName(virtualKey));

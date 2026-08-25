@@ -14,7 +14,7 @@ invisible et quasi gratuit en ressources.
 ## 2. Objectifs
 
 - Toggle des icônes du bureau via un **raccourci clavier global configurable**,
-  `Win+Maj+D` par défaut, avec chaîne de repli (§5.3).
+  `Ctrl+Alt+D` par défaut, avec chaîne de repli (§5.3).
 - Toggle via une **icône de zone de notification** présente uniquement quand le
   bureau est au premier plan.
 - Option **« masquer aussi la barre des tâches »**, étendant la bascule.
@@ -153,11 +153,18 @@ continue de distribuer aux autres fenêtres pour que l'app reste vivante. Règle
 - `WM_QUIT` est **reposté** et non avalé, sinon l'app se bloquerait à la fermeture.
 
 **Chaîne de repli.** Tant que l'utilisateur n'a rien choisi lui-même
-(`HotkeyConfigured` faux), le démarrage tente `Win+Maj+D`, puis `Ctrl+Alt+D`, puis
-`Ctrl+Alt+Maj+D`, et conserve la première accordée. Windows réserve certaines
-combinaisons — `Win+Échap` (quitter la Loupe), `Win+D`, `Win+Alt+D` — et un défaut
-fixe peut donc laisser l'application sans déclencheur clavier, ce qui s'est produit
-en test. La combinaison retenue est persistée et affichée. Dès que l'utilisateur en
+(`HotkeyConfigured` faux), le démarrage tente `Ctrl+Alt+D`, puis `Ctrl+Alt+Maj+D`,
+puis `Ctrl+Alt+Maj+F9`, et conserve la première accordée.
+
+**Aucune combinaison à base de touche Windows n'est proposée**, et c'est un choix
+appuyé sur une mesure. `Win+Échap` a été refusé par `RegisterHotKey` (réservé pour
+la Loupe). `Win+Maj+D` a été **accordé** — un second `RegisterHotKey` depuis un
+autre processus renvoyait `ERROR_HOTKEY_ALREADY_REGISTERED` — et pourtant aucun
+`WM_HOTKEY` n'est jamais arrivé, alors que poster `WM_HOTKEY` à la main basculait
+correctement les icônes. L'explorateur traite les `Win+<touche>` par son propre
+hook clavier, en amont de la distribution des raccourcis enregistrés : la frappe
+est consommée avant nous. **Le succès de l'enregistrement ne prouve donc rien pour
+cette famille**, et rien ne permet de détecter le cas au moment de l'enregistrer. La combinaison retenue est persistée et affichée. Dès que l'utilisateur en
 choisit une, `HotkeyConfigured` passe à vrai et **plus aucune substitution
 silencieuse n'a lieu** : un échec est signalé, pas contourné.
 

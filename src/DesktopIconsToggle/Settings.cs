@@ -8,7 +8,7 @@ internal sealed class Settings
 {
     public const string SubKey = @"Software\DesktopIconsToggle";
 
-    public const uint DefaultHotkeyModifiers = 0x000C; // MOD_WIN | MOD_SHIFT
+    public const uint DefaultHotkeyModifiers = 0x0003; // MOD_ALT | MOD_CONTROL
     public const uint DefaultHotkeyVirtualKey = 0x44;  // VK_D
     public const bool DefaultHideTaskbar = false;
     public const bool DefaultTaskbarHiddenByUs = false;

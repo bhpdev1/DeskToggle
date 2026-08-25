@@ -86,7 +86,7 @@ public class HotkeyFormatterTests
     [Fact]
     public void ShiftModifierAlone()
     {
-        Assert.Equal("Shift+D", HotkeyFormatter.Format(ModShift, 0x44));
+        Assert.Equal("Maj+D", HotkeyFormatter.Format(ModShift, 0x44));
     }
 
     [Fact]
@@ -98,19 +98,19 @@ public class HotkeyFormatterTests
     [Fact]
     public void WinAndShiftGiveWinShiftD()
     {
-        Assert.Equal("Win+Shift+D", HotkeyFormatter.Format(ModWin | ModShift, 0x44));
+        Assert.Equal("Win+Maj+D", HotkeyFormatter.Format(ModWin | ModShift, 0x44));
     }
 
     [Fact]
     public void AllFourModifiersAreOrderedWinCtrlAltShift()
     {
-        Assert.Equal("Win+Ctrl+Alt+Shift+Échap", HotkeyFormatter.Format(ModWin | ModControl | ModAlt | ModShift, 0x1B));
+        Assert.Equal("Win+Ctrl+Alt+Maj+Échap", HotkeyFormatter.Format(ModWin | ModControl | ModAlt | ModShift, 0x1B));
     }
 
     [Fact]
     public void ModifierOrderIsFixedRegardlessOfInputBitOrder()
     {
         // Shift and Alt set, but flip the "obvious" bit ordering when combining.
-        Assert.Equal("Alt+Shift+F5", HotkeyFormatter.Format(ModShift | ModAlt, 0x74));
+        Assert.Equal("Alt+Maj+F5", HotkeyFormatter.Format(ModShift | ModAlt, 0x74));
     }
 }

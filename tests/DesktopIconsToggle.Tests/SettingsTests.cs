@@ -27,7 +27,10 @@ public class SettingsTests
     [Fact]
     public void DefaultsMatchDocumentedValues()
     {
-        Assert.Equal(0x000Cu, Settings.DefaultHotkeyModifiers);
+        // Ctrl+Alt+D. Deliberately not a Windows-key combination: the shell consumes
+        // those ahead of registered-hotkey dispatch, so RegisterHotKey can succeed for
+        // one that never fires.
+        Assert.Equal(0x0003u, Settings.DefaultHotkeyModifiers);
         Assert.Equal(0x44u, Settings.DefaultHotkeyVirtualKey);
         Assert.False(Settings.DefaultHideTaskbar);
         Assert.False(Settings.DefaultTaskbarHiddenByUs);

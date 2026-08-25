@@ -7,7 +7,7 @@ et optionnellement la barre des tâches avec.
 
 Deux façons de basculer :
 
-- **Raccourci clavier global**, `Win+Maj+D` par défaut, configurable depuis le menu.
+- **Raccourci clavier global**, `Ctrl+Alt+D` par défaut, configurable depuis le menu.
 - **Icône de notification**, présente uniquement quand le bureau est au premier
   plan. Clic gauche pour basculer, clic droit pour le menu.
 
@@ -43,9 +43,14 @@ d'un modificateur reste un choix valide, et Alt+F4 est refusé parce que
 l'enregistrer confisquerait « fermer la fenêtre » à tout le système.
 
 Au tout premier lancement, tant que vous n'avez rien choisi vous-même,
-l'application essaie `Win+Maj+D`, puis `Ctrl+Alt+D`, puis `Ctrl+Alt+Maj+D`, et
-garde la première que Windows accorde — certaines combinaisons sont réservées par
-le système. Le menu affiche celle réellement obtenue. Dès que vous en choisissez
+l'application essaie `Ctrl+Alt+D`, puis `Ctrl+Alt+Maj+D`, puis `Ctrl+Alt+Maj+F9`,
+et garde la première que Windows accorde. Le menu affiche celle réellement obtenue.
+
+**Évitez les combinaisons avec la touche Windows.** L'explorateur traite les
+`Win+<touche>` par son propre hook clavier, en amont de la distribution des
+raccourcis enregistrés : l'enregistrement peut réussir et le raccourci ne jamais
+se déclencher. Rien ne permet de le détecter à l'enregistrement — c'est pourquoi
+aucune combinaison de cette famille n'est proposée par défaut. Dès que vous en choisissez
 une, elle n'est plus jamais remplacée : si elle cesse de fonctionner,
 l'application le signale au lieu d'en substituer une autre.
 
