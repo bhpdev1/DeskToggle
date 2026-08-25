@@ -47,6 +47,7 @@ internal static class Win32
     public const int  DEFAULT_GUI_FONT = 17;
     public const int  COLOR_BTNFACE    = 15;
     public const int  IDC_ARROW        = 32512;
+    public const uint SPI_GETNONCLIENTMETRICS = 0x0029;
 
     // ---- tray ----
     public const int  NIM_ADD        = 0x00000000;
@@ -95,6 +96,47 @@ internal static class Win32
         public int Top;
         public int Right;
         public int Bottom;
+    }
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    public struct LOGFONTW
+    {
+        public int lfHeight;
+        public int lfWidth;
+        public int lfEscapement;
+        public int lfOrientation;
+        public int lfWeight;
+        public byte lfItalic;
+        public byte lfUnderline;
+        public byte lfStrikeOut;
+        public byte lfCharSet;
+        public byte lfOutPrecision;
+        public byte lfClipPrecision;
+        public byte lfQuality;
+        public byte lfPitchAndFamily;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
+        public string lfFaceName;
+    }
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    public struct NONCLIENTMETRICSW
+    {
+        public uint    cbSize;
+        public int     iBorderWidth;
+        public int     iScrollWidth;
+        public int     iScrollHeight;
+        public int     iCaptionWidth;
+        public int     iCaptionHeight;
+        public LOGFONTW lfCaptionFont;
+        public int     iSmCaptionWidth;
+        public int     iSmCaptionHeight;
+        public LOGFONTW lfSmCaptionFont;
+        public int     iMenuWidth;
+        public int     iMenuHeight;
+        public LOGFONTW lfMenuFont;
+        public LOGFONTW lfStatusFont;
+        public LOGFONTW lfMessageFont;
+        public int     iPaddedBorderWidth;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -299,9 +341,26 @@ internal static class Win32
     [DllImport("user32.dll", SetLastError = true)]
     public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
 
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool SystemParametersInfoW(uint uiAction, uint uiParam, ref NONCLIENTMETRICSW pvParam, uint fWinIni);
+
+    [DllImport("user32.dll")]
+    public static extern uint GetDpiForWindow(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    public static extern uint GetDpiForSystem();
+
     // ---- gdi32 ----
     [DllImport("gdi32.dll")]
     public static extern IntPtr GetStockObject(int fnObject);
+
+    [DllImport("gdi32.dll", CharSet = CharSet.Unicode)]
+    public static extern IntPtr CreateFontIndirectW(ref LOGFONTW lplf);
+
+    [DllImport("gdi32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool DeleteObject(IntPtr hObject);
 
     // ---- shell32 ----
     [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
