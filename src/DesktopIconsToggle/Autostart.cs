@@ -9,16 +9,23 @@ internal interface IRegistryValueStore
     void Delete(string name);
 }
 
-/// <summary>HKCU Run key. Every operation swallows registry failures.</summary>
-internal sealed class RunKeyStore : IRegistryValueStore
+/// <summary>HKCU-backed registry value store. Every operation swallows registry failures.</summary>
+internal sealed class RegistryValueStore : IRegistryValueStore
 {
-    private const string SubKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
+    public const string RunSubKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
+
+    private readonly string _subKeyPath;
+
+    public RegistryValueStore(string subKeyPath)
+    {
+        _subKeyPath = subKeyPath;
+    }
 
     public string? Read(string name)
     {
         try
         {
-            using var key = Registry.CurrentUser.OpenSubKey(SubKey, writable: false);
+            using var key = Registry.CurrentUser.OpenSubKey(_subKeyPath, writable: false);
             return key?.GetValue(name) as string;
         }
         catch (Exception ex) when (ex is UnauthorizedAccessException or System.Security.SecurityException)
@@ -31,7 +38,7 @@ internal sealed class RunKeyStore : IRegistryValueStore
     {
         try
         {
-            using var key = Registry.CurrentUser.CreateSubKey(SubKey, writable: true);
+            using var key = Registry.CurrentUser.CreateSubKey(_subKeyPath, writable: true);
             key?.SetValue(name, value, RegistryValueKind.String);
         }
         catch (Exception ex) when (ex is UnauthorizedAccessException or System.Security.SecurityException)
@@ -44,7 +51,7 @@ internal sealed class RunKeyStore : IRegistryValueStore
     {
         try
         {
-            using var key = Registry.CurrentUser.OpenSubKey(SubKey, writable: true);
+            using var key = Registry.CurrentUser.OpenSubKey(_subKeyPath, writable: true);
             key?.DeleteValue(name, throwOnMissingValue: false);
         }
         catch (Exception ex) when (ex is UnauthorizedAccessException or System.Security.SecurityException)

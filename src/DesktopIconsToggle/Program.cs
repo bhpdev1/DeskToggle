@@ -24,7 +24,7 @@ internal static class Program
         }
 
         string exePath = Environment.ProcessPath ?? Process.GetCurrentProcess().MainModule!.FileName;
-        _autostart = new Autostart(new RunKeyStore(), exePath);
+        _autostart = new Autostart(new RegistryValueStore(RegistryValueStore.RunSubKey), exePath);
 
         _taskbarCreatedMessage = Win32.RegisterWindowMessageW("TaskbarCreated");
 
