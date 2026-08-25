@@ -57,6 +57,9 @@ internal static class Win32
     public const uint DT_CENTER        = 0x00000001;
     public const uint DT_VCENTER       = 0x00000004;
     public const uint DT_SINGLELINE    = 0x00000020;
+    public const uint BI_RGB           = 0;
+    public const uint DIB_RGB_COLORS   = 0;
+    public const int  BLACK_BRUSH      = 4;
     public const uint MONITOR_DEFAULTTONEAREST = 2;
     public const uint BS_PUSHBUTTON    = 0;
     public const int  SW_HIDE          = 0;
@@ -87,6 +90,7 @@ internal static class Win32
     public const uint TPM_RIGHTBUTTON = 0x0002;
     public const uint TPM_RETURNCMD   = 0x0100;
     public const uint MIIM_BITMAP     = 0x00000080;
+    public const uint MIIM_CHECKMARKS = 0x00000001;
 
     // ---- hotkeys ----
     public const uint MOD_ALT      = 0x0001;
@@ -195,6 +199,22 @@ internal static class Win32
         public IntPtr dwTypeData;
         public uint   cch;
         public IntPtr hbmpItem;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct BITMAPINFOHEADER
+    {
+        public uint   biSize;
+        public int    biWidth;
+        public int    biHeight;
+        public ushort biPlanes;
+        public ushort biBitCount;
+        public uint   biCompression;
+        public uint   biSizeImage;
+        public int    biXPelsPerMeter;
+        public int    biYPelsPerMeter;
+        public uint   biClrUsed;
+        public uint   biClrImportant;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -467,6 +487,10 @@ internal static class Win32
     public static extern IntPtr CreateCompatibleBitmap(IntPtr hdc, int cx, int cy);
 
     [DllImport("gdi32.dll")]
+    public static extern IntPtr CreateDIBSection(IntPtr hdc, ref BITMAPINFOHEADER pbmi, uint usage,
+                                                 out IntPtr ppvBits, IntPtr hSection, uint offset);
+
+    [DllImport("gdi32.dll")]
     public static extern IntPtr SelectObject(IntPtr hdc, IntPtr hgdiobj);
 
     [DllImport("gdi32.dll")]
@@ -491,6 +515,10 @@ internal static class Win32
     // ---- dwmapi ----
     [DllImport("dwmapi.dll")]
     public static extern int DwmSetWindowAttribute(IntPtr hwnd, int dwAttribute, ref int pvAttribute, int cbAttribute);
+
+    [DllImport("dwmapi.dll")]
+    public static extern int DwmGetColorizationColor(out uint pcrColorization,
+                                                     [MarshalAs(UnmanagedType.Bool)] out bool pfOpaqueBlend);
 
     // ---- shcore ----
     [DllImport("shcore.dll")]

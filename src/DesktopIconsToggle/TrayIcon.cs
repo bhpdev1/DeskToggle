@@ -22,7 +22,7 @@ internal sealed class TrayIcon : IDisposable
     // Segoe MDL2 Assets codepoints (also present in Segoe Fluent Icons). Written as
     // numeric casts, not \u escapes, so the private-use-area glyphs cannot be mangled by
     // source file encoding round-trips.
-    private const char GlyphEye       = (char)0xE7B3; // Afficher / Masquer les icônes
+    private const char GlyphEye       = (char)0xE890; // Afficher / Masquer les icônes
     private const char GlyphTaskbar   = (char)0xE7F4; // Masquer aussi la barre des tâches
     private const char GlyphKeyboard  = (char)0xE765; // Raccourci : …
     private const char GlyphAutostart = (char)0xE7E8; // Démarrage automatique
@@ -58,9 +58,11 @@ internal sealed class TrayIcon : IDisposable
     public event Action<int>? CommandChosen;
 
     /// <summary>
-    /// Forwards a system settings change (light/dark theme flip) to the cached menu
-    /// icons, so the next time the menu is shown its icons are re-rendered at the
-    /// current system menu colours instead of the ones baked in at first render.
+    /// Forwards a system settings change (theme flip or accent colour change) to the
+    /// cached menu icons. The glyph bitmaps carry real alpha and are cached per colour,
+    /// so they no longer need this to stay correct after a theme flip; what does need it
+    /// is the memoized Windows accent colour, which is otherwise only read once and would
+    /// keep returning a value the user has since changed.
     /// </summary>
     public void OnSettingsChanged() => _menuIcons.Invalidate();
 
@@ -110,26 +112,26 @@ internal sealed class TrayIcon : IDisposable
         {
             Win32.AppendMenuW(menu, Win32.MF_STRING, new UIntPtr(CmdToggle),
                               state.IconsVisible ? "Masquer les icônes" : "Afficher les icônes");
-            SetItemIcon(menu, CmdToggle, GlyphEye);
+            SetItemIcon(menu, CmdToggle, GlyphEye, MenuIcons.NeutralColor);
 
             Win32.AppendMenuW(menu, Win32.MF_SEPARATOR, UIntPtr.Zero, null);
 
             Win32.AppendMenuW(menu, Win32.MF_STRING | (state.HideTaskbar ? Win32.MF_CHECKED : 0),
                               new UIntPtr(CmdHideTaskbar), "Masquer aussi la barre des tâches");
-            SetItemIcon(menu, CmdHideTaskbar, GlyphTaskbar);
+            SetItemCheckIcons(menu, CmdHideTaskbar, GlyphTaskbar);
 
             Win32.AppendMenuW(menu, Win32.MF_STRING, new UIntPtr(CmdChangeHotkey),
                               $"Raccourci : {state.HotkeyLabel}…");
-            SetItemIcon(menu, CmdChangeHotkey, GlyphKeyboard);
+            SetItemIcon(menu, CmdChangeHotkey, GlyphKeyboard, MenuIcons.NeutralColor);
 
             Win32.AppendMenuW(menu, Win32.MF_STRING | (state.AutostartEnabled ? Win32.MF_CHECKED : 0),
                               new UIntPtr(CmdAutostart), "Démarrage automatique");
-            SetItemIcon(menu, CmdAutostart, GlyphAutostart);
+            SetItemCheckIcons(menu, CmdAutostart, GlyphAutostart);
 
             Win32.AppendMenuW(menu, Win32.MF_SEPARATOR, UIntPtr.Zero, null);
 
             Win32.AppendMenuW(menu, Win32.MF_STRING, new UIntPtr(CmdQuit), "Quitter");
-            SetItemIcon(menu, CmdQuit, GlyphQuit);
+            SetItemIcon(menu, CmdQuit, GlyphQuit, MenuIcons.RedColor);
 
             Win32.GetCursorPos(out var cursor);
             // Required so the menu closes when the user clicks elsewhere.
@@ -154,13 +156,14 @@ internal sealed class TrayIcon : IDisposable
     }
 
     /// <summary>
-    /// Attaches the cached glyph bitmap to a menu item. A no-op when the icon font is
-    /// unavailable (<see cref="MenuIcons.Get"/> returns <see cref="IntPtr.Zero"/>) so the
-    /// item degrades to text-only rather than showing an empty gutter.
+    /// Attaches the cached glyph bitmap to a non-checkable menu item via
+    /// <c>MIIM_BITMAP</c>/<c>hbmpItem</c>. A no-op when the icon font is unavailable
+    /// (<see cref="MenuIcons.Get"/> returns <see cref="IntPtr.Zero"/>) so the item
+    /// degrades to text-only rather than showing an empty gutter.
     /// </summary>
-    private void SetItemIcon(IntPtr menu, int commandId, char glyph)
+    private void SetItemIcon(IntPtr menu, int commandId, char glyph, uint color)
     {
-        IntPtr bitmap = _menuIcons.Get(glyph);
+        IntPtr bitmap = _menuIcons.Get(glyph, color);
         if (bitmap == IntPtr.Zero)
         {
             return;
@@ -171,6 +174,35 @@ internal sealed class TrayIcon : IDisposable
             cbSize = (uint)Marshal.SizeOf<Win32.MENUITEMINFOW>(),
             fMask = Win32.MIIM_BITMAP,
             hbmpItem = bitmap,
+        };
+
+        Win32.SetMenuItemInfoW(menu, (uint)commandId, false, ref info);
+    }
+
+    /// <summary>
+    /// Attaches both state bitmaps to a checkable menu item via
+    /// <c>MIIM_CHECKMARKS</c>/<c>hbmpUnchecked</c>/<c>hbmpChecked</c>, so Windows itself
+    /// picks between them according to the item's <c>MF_CHECKED</c> state (set by the
+    /// caller in the <c>AppendMenuW</c> flags) instead of drawing a native check mark —
+    /// <c>hbmpItem</c> and the check-mark gutter cannot coexist, so this is the only way
+    /// to keep the item's checked/unchecked state visible once it also has an icon. A
+    /// no-op when the icon font is unavailable, leaving the native check mark in place.
+    /// </summary>
+    private void SetItemCheckIcons(IntPtr menu, int commandId, char glyph)
+    {
+        IntPtr unchecked_ = _menuIcons.Get(glyph, MenuIcons.NeutralColor);
+        IntPtr checked_ = _menuIcons.Get(glyph, _menuIcons.AccentColor());
+        if (unchecked_ == IntPtr.Zero || checked_ == IntPtr.Zero)
+        {
+            return;
+        }
+
+        var info = new Win32.MENUITEMINFOW
+        {
+            cbSize = (uint)Marshal.SizeOf<Win32.MENUITEMINFOW>(),
+            fMask = Win32.MIIM_CHECKMARKS,
+            hbmpUnchecked = unchecked_,
+            hbmpChecked = checked_,
         };
 
         Win32.SetMenuItemInfoW(menu, (uint)commandId, false, ref info);
