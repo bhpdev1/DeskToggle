@@ -44,14 +44,23 @@ internal sealed class MouseHook : IDisposable
             return Win32.CallNextHookEx(_hook, nCode, wParam, lParam);
         }
 
-        if (_detector.RegisterClick(Win32.GetTickCount()))
+        try
         {
-            var data = Marshal.PtrToStructure<Win32.MSLLHOOKSTRUCT>(lParam);
-            if (IsOverDesktop(data.pt))
+            if (_detector.RegisterClick(Win32.GetTickCount()))
             {
-                // Never call into Explorer from a hook: Windows unhooks slow callbacks.
-                Win32.PostMessageW(_targetWindow, Win32.WM_APP_TOGGLE, IntPtr.Zero, IntPtr.Zero);
+                var data = Marshal.PtrToStructure<Win32.MSLLHOOKSTRUCT>(lParam);
+                if (IsOverDesktop(data.pt))
+                {
+                    // Never call into Explorer from a hook: Windows unhooks slow callbacks.
+                    Win32.PostMessageW(_targetWindow, Win32.WM_APP_TOGGLE, IntPtr.Zero, IntPtr.Zero);
+                }
             }
+        }
+        catch
+        {
+            // An exception escaping a reverse P/Invoke callback terminates the process
+            // without running ProcessExit, which would strand the user's icons hidden.
+            // Swallow it and pass the click through: a missed toggle beats a lost desktop.
         }
 
         // Always let the click through; middle-clicking the desktop does nothing natively.

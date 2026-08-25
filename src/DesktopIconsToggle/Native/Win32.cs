@@ -11,6 +11,7 @@ internal static class Win32
     public const int WM_QUIT         = 0x0012;
     public const int WM_ENDSESSION   = 0x0016;
     public const int WM_COMMAND      = 0x0111;
+    public const int WM_TIMER        = 0x0113;
     public const int WM_LBUTTONUP    = 0x0202;
     public const int WM_RBUTTONUP    = 0x0205;
     public const int WM_MBUTTONDOWN  = 0x0207;
@@ -34,6 +35,7 @@ internal static class Win32
     public const uint IMAGE_ICON      = 1;
     public const uint LR_DEFAULTSIZE  = 0x00000040;
     public const uint LR_SHARED       = 0x00008000;
+    public const uint WS_EX_TOOLWINDOW = 0x00000080;
 
     // ---- tray ----
     public const int  NIM_ADD        = 0x00000000;
@@ -228,6 +230,13 @@ internal static class Win32
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool GetCursorPos(out POINT lpPoint);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern nuint SetTimer(IntPtr hWnd, nuint nIDEvent, uint uElapse, IntPtr lpTimerFunc);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool KillTimer(IntPtr hWnd, nuint uIDEvent);
 
     // ---- shell32 ----
     [DllImport("shell32.dll", CharSet = CharSet.Unicode)]

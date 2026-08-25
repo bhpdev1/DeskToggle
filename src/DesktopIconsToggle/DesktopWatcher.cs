@@ -12,6 +12,13 @@ internal sealed class DesktopWatcher : IDisposable
     private readonly Win32.WinEventProc _callback;
     private IntPtr _hook;
 
+    // The shell's own windows. Clicking our notify icon activates the taskbar, and
+    // treating that as "the desktop lost the foreground" would delete the icon out
+    // from under the user's cursor before the click callback arrives.
+    private static readonly string[] ShellClasses =
+        ["Shell_TrayWnd", "Shell_SecondaryTrayWnd", "NotifyIconOverflowWindow",
+         "TopLevelWindowForOverflowXamlIsland"];
+
     public DesktopWatcher() => _callback = OnForegroundChanged;
 
     public event Action<bool>? Changed;
@@ -52,14 +59,28 @@ internal sealed class DesktopWatcher : IDisposable
             return;
         }
 
-        bool isDesktop = IsDesktopWindow(hwnd);
-        if (isDesktop == IsDesktopForeground)
+        if (Array.IndexOf(ShellClasses, Win32.GetClassName(hwnd)) >= 0)
         {
             return;
         }
 
-        IsDesktopForeground = isDesktop;
-        Changed?.Invoke(isDesktop);
+        try
+        {
+            bool isDesktop = IsDesktopWindow(hwnd);
+            if (isDesktop == IsDesktopForeground)
+            {
+                return;
+            }
+
+            IsDesktopForeground = isDesktop;
+            Changed?.Invoke(isDesktop);
+        }
+        catch
+        {
+            // An exception escaping a reverse P/Invoke callback terminates the process
+            // without running ProcessExit, which would strand the user's icons hidden.
+            // Swallow it: a missed foreground update beats a lost desktop.
+        }
     }
 
     public void Dispose()

@@ -5,12 +5,16 @@ namespace DesktopIconsToggle;
 
 internal static class Program
 {
+    private const nuint TooltipTimerId = 1;
+
     private static AppWindow? _window;
     private static TrayIcon? _tray;
     private static DesktopWatcher? _watcher;
     private static MouseHook? _mouseHook;
     private static Autostart? _autostart;
     private static uint _taskbarCreatedMessage;
+    private static IntPtr _windowHandle;
+    private static int _shutdownStarted;
 
     private static int Main(string[] args)
     {
@@ -27,6 +31,7 @@ internal static class Program
 
         var window = new AppWindow();
         _window = window;
+        _windowHandle = window.Handle;
         window.MessageReceived += OnMessage;
 
         // Locals, not the nullable fields: a lambda capturing a nullable field
@@ -68,6 +73,13 @@ internal static class Program
 
     private static bool OnMessage(uint msg, IntPtr wParam, IntPtr lParam)
     {
+        if (msg == Win32.WM_TIMER && (nuint)wParam == TooltipTimerId)
+        {
+            Win32.KillTimer(_windowHandle, TooltipTimerId);
+            RefreshTooltip();
+            return true;
+        }
+
         if (msg == Win32.WM_APP_TOGGLE)
         {
             ToggleIcons();
@@ -99,8 +111,10 @@ internal static class Program
         // the app must keep running in that case.
         if (msg == Win32.WM_ENDSESSION && wParam != IntPtr.Zero)
         {
+            // Restore synchronously: the system may terminate the process at any point
+            // after this returns, so deferring the restore to the message loop is not safe.
             Shutdown();
-            return false;
+            return true;
         }
 
         return false;
@@ -132,9 +146,13 @@ internal static class Program
             return;
         }
 
-        // Explorer needs a beat before the window state reflects the change.
-        Thread.Sleep(120);
-        RefreshTooltip();
+        // Explorer needs a moment before the window state reflects the posted toggle.
+        // Sleeping here would stall the thread that services the low-level mouse hook,
+        // and Windows silently unhooks a callback thread that overruns its timeout.
+        if (_windowHandle != IntPtr.Zero)
+        {
+            Win32.SetTimer(_windowHandle, TooltipTimerId, 150, IntPtr.Zero);
+        }
     }
 
     private static void RefreshTooltip()
@@ -144,7 +162,21 @@ internal static class Program
 
     private static void Shutdown()
     {
+        // Both the message loop's return and the ProcessExit handler call this.
+        // Without the guard, EnsureVisible runs twice milliseconds apart — and because
+        // Explorer needs a moment to reflect a posted toggle, the second call would
+        // still read "hidden" and toggle again, re-hiding what the first call restored.
+        if (Interlocked.Exchange(ref _shutdownStarted, 1) != 0)
+        {
+            return;
+        }
+
         IconToggler.EnsureVisible();   // never leave the user without icons
+        if (_windowHandle != IntPtr.Zero)
+        {
+            Win32.KillTimer(_windowHandle, TooltipTimerId);
+        }
+
         _tray?.Dispose();
         _mouseHook?.Dispose();
         _watcher?.Dispose();
@@ -153,5 +185,6 @@ internal static class Program
         _mouseHook = null;
         _watcher = null;
         _window = null;
+        _windowHandle = IntPtr.Zero;
     }
 }

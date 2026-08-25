@@ -3,13 +3,13 @@ using DesktopIconsToggle.Native;
 
 namespace DesktopIconsToggle;
 
-/// <summary>Hidden HWND_MESSAGE window: the single place where work happens.</summary>
+/// <summary>Hidden top-level window: the single place where work happens.</summary>
 internal sealed class AppWindow : IDisposable
 {
     private const string ClassName = "DesktopIconsToggleWnd";
 
     private readonly Win32.WndProc _wndProc;    // kept alive for the OS
-    private readonly IntPtr _classNamePtr;
+    private IntPtr _classNamePtr;
 
     public AppWindow()
     {
@@ -30,8 +30,8 @@ internal sealed class AppWindow : IDisposable
                 $"RegisterClassEx failed: {Marshal.GetLastWin32Error()}");
         }
 
-        Handle = Win32.CreateWindowExW(0, ClassName, ClassName, 0, 0, 0, 0, 0,
-                                       Win32.HWND_MESSAGE, IntPtr.Zero,
+        Handle = Win32.CreateWindowExW(Win32.WS_EX_TOOLWINDOW, ClassName, ClassName, 0, 0, 0, 0, 0,
+                                       IntPtr.Zero, IntPtr.Zero,
                                        Win32.GetModuleHandleW(null), IntPtr.Zero);
 
         if (Handle == IntPtr.Zero)
@@ -41,7 +41,7 @@ internal sealed class AppWindow : IDisposable
         }
     }
 
-    public IntPtr Handle { get; }
+    public IntPtr Handle { get; private set; }
 
     /// <summary>Return true to swallow the message.</summary>
     public event Func<uint, IntPtr, IntPtr, bool>? MessageReceived;
@@ -88,11 +88,13 @@ internal sealed class AppWindow : IDisposable
         if (Handle != IntPtr.Zero)
         {
             Win32.DestroyWindow(Handle);
+            Handle = IntPtr.Zero;
         }
 
         if (_classNamePtr != IntPtr.Zero)
         {
             Marshal.FreeHGlobal(_classNamePtr);
+            _classNamePtr = IntPtr.Zero;
         }
     }
 }
