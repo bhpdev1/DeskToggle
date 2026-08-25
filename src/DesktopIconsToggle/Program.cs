@@ -19,7 +19,11 @@ internal static class Program
             using var watcher = new DesktopWatcher();
             watcher.Changed += isDesktop =>
                 Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] desktop foreground = {isDesktop}");
-            watcher.Start();
+            if (!watcher.Start())
+            {
+                Console.WriteLine("SetWinEventHook failed");
+                return 1;
+            }
 
             Console.WriteLine("Alt-Tab between the desktop and a window. Ctrl+C to stop.");
             while (Native.Win32.GetMessageW(out var msg, IntPtr.Zero, 0, 0) > 0)

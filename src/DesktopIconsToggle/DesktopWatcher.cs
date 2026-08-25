@@ -29,12 +29,18 @@ internal sealed class DesktopWatcher : IDisposable
         return className is "Progman" or "WorkerW";
     }
 
-    public void Start()
+    /// <summary>
+    /// Installs the foreground hook and publishes the initial state.
+    /// Returns false when the hook could not be installed: the caller still gets
+    /// the initial state, but will never be told about any later transition.
+    /// </summary>
+    public bool Start()
     {
         IsDesktopForeground = IsDesktopWindow(Win32.GetForegroundWindow());
         _hook = Win32.SetWinEventHook(Win32.EVENT_SYSTEM_FOREGROUND, Win32.EVENT_SYSTEM_FOREGROUND,
                                       IntPtr.Zero, _callback, 0, 0, Win32.WINEVENT_OUTOFCONTEXT);
         Changed?.Invoke(IsDesktopForeground);
+        return _hook != IntPtr.Zero;
     }
 
     private void OnForegroundChanged(IntPtr hWinEventHook, uint eventType, IntPtr hwnd,
