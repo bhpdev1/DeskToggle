@@ -1,47 +1,62 @@
 # DesktopIconsToggle — Design
 
 **Date :** 2026-08-25
-**Statut :** validé, prêt pour plan d'implémentation
+**Statut :** implémenté. Révisé après la V2 (raccourci clavier, barre des tâches,
+retrait du hook souris).
 
 ## 1. Problème
 
 Masquer/afficher les icônes du bureau Windows sans passer par le menu contextuel
-(clic droit → Affichage → « Afficher les éléments du Bureau »). L'utilitaire doit
-démarrer avec la session et rester invisible et quasi gratuit en ressources.
+(clic droit → Affichage → « Afficher les éléments du Bureau »), et optionnellement
+la barre des tâches avec. L'utilitaire doit démarrer avec la session et rester
+invisible et quasi gratuit en ressources.
 
 ## 2. Objectifs
 
-- Toggle des icônes du bureau via **double-clic molette** sur le bureau.
+- Toggle des icônes du bureau via un **raccourci clavier global configurable**,
+  `Win+Échap` par défaut.
 - Toggle via une **icône de zone de notification** présente uniquement quand le
   bureau est au premier plan.
+- Option **« masquer aussi la barre des tâches »**, étendant la bascule.
 - Démarrage automatique à l'ouverture de session, activable/désactivable depuis
   l'application.
 - Empreinte cible : exe ≈ 1,5 Mo, RSS ≈ 5 Mo, 0 % CPU au repos.
-  **Mesuré (2026-08-25) :** exe 1 863 168 octets (1,78 Mo), jeu de travail au
-  repos 9,61 Mo, CPU 0 % au repos. La cible CPU est tenue — il n'y a ni timer
-  périodique ni polling nulle part. Les deux cibles de taille sont dépassées :
-  l'exe de ~19 %, la mémoire de ~90 %. Chiffres observés, non arrondis vers la
-  cible.
+
+**Mesuré après la V2 (2026-08-25) :** exe 1 463 808 octets (1,40 Mo) ; jeu de
+travail au repos 10,27 Mo mais **mémoire privée 3,01 Mo** ; 0 ms de CPU sur
+20 secondes au repos. Les trois cibles sont tenues si l'on retient la mémoire
+privée, qui est ce que l'application coûte réellement — le jeu de travail compte
+en plus des pages partagées (image de l'exe, DLL système) déjà présentes pour
+tout le système. Le retrait du hook souris de la V1 a fait passer l'exe de
+1 863 168 à 1 463 808 octets, soit −21 %.
 
 ## 3. Non-objectifs
 
-- Pas de fenêtre de configuration ni de fichier de paramètres.
-- Pas de raccourci clavier global.
-- Pas de gestion par moniteur (le toggle Windows est global par conception).
+- Pas de gestion par moniteur. `ABM_SETSTATE` est global et Windows n'expose
+  aucune API d'auto-masquage par écran ; la seule autre voie serait de masquer
+  directement les fenêtres `Shell_SecondaryTrayWnd`, qu'Explorer restaure de
+  lui-même et qui ne recalcule pas la zone de travail.
 - Pas d'installeur ; l'exe est autonome et se copie à la main.
+- Pas de masquage sélectif d'icônes : Windows ne l'expose pas, il faudrait
+  piloter la ListView d'Explorer par messages inter-processus.
+
+*(La V1 listait « pas de fenêtre de configuration » et « pas de raccourci clavier
+global » comme non-objectifs. La V2 a fait des deux des objectifs.)*
 
 ## 4. Choix techniques
 
 | Décision | Choix | Raison |
 |---|---|---|
 | Langage / runtime | C# .NET 10, `PublishAot=true`, `win-x64` | Exe natif autonome, pas de runtime à installer, démarrage instantané |
-| UI | P/Invoke Win32 brut, fenêtre message-only | WinForms n'est pas supporté en NativeAOT ; évite ~10 Mo d'exe et de RAM |
-| Déclencheur souris | `WH_MOUSE_LL` global | Seul moyen fiable de voir un clic milieu sur le bureau |
+| UI | P/Invoke Win32 brut | WinForms n'est pas supporté en NativeAOT ; évite ~10 Mo d'exe et de RAM |
+| Fenêtre hôte | Top-level cachée, `WS_EX_TOOLWINDOW` | Voir la correction en §5 : une fenêtre message-only ne reçoit pas les diffusions et ne peut pas porter `RegisterHotKey` |
+| Déclencheur clavier | `RegisterHotKey` + `MOD_NOREPEAT` | Windows ne nous réveille qu'à la combinaison ; aucun hook, aucun coût continu |
 | Détection bureau | `SetWinEventHook(EVENT_SYSTEM_FOREGROUND)` | Événementiel : aucun polling, aucun réveil périodique |
+| Barre des tâches | `SHAppBarMessage` / `ABM_SETSTATE` / `ABS_AUTOHIDE` | C'est Explorer qui révèle la barre au bord de l'écran ; l'app ne surveille rien, donc aucune latence à implémenter |
+| Réglages | `HKCU\Software\DesktopIconsToggle` | Même mécanisme que l'autostart, aucun fichier à gérer |
 | Autostart | `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` | Aucun droit administrateur requis |
 
-**Prérequis de build :** SDK .NET 10, MSVC 14.51 (présent), Windows SDK
-10.0.26100 (présent). Seul le SDK .NET manque sur la machine cible.
+**Prérequis de build :** SDK .NET 10, MSVC 14.51, Windows SDK 10.0.26100.
 
 ## 5. Architecture
 
@@ -49,170 +64,241 @@ Un seul processus, un seul thread UI portant une fenêtre cachée et sa boucle d
 messages. Tous les composants publient vers ce thread ; aucun verrouillage n'est
 nécessaire.
 
-**Correction post-revue (2026-08-25).** Cette section imposait initialement une
-fenêtre *message-only* (`HWND_MESSAGE`). C'était incompatible avec trois
-exigences des sections 5.4 et 7 : une fenêtre message-only n'a pas de z-order,
-n'est pas énumérable et **ne reçoit aucun message de diffusion**. Elle ne peut
-donc ni recevoir `WM_ENDSESSION` (icônes perdues à la déconnexion), ni recevoir
-`TaskbarCreated` (icône jamais recréée après un redémarrage d'Explorer), ni
-servir de cible à `SetForegroundWindow` (menu qui refuse de se fermer). La
-fenêtre est désormais **top-level, cachée** : parent `IntPtr.Zero`, style étendu
-`WS_EX_TOOLWINDOW`, jamais affichée (ni `WS_VISIBLE`, ni `ShowWindow`), donc
-invisible à l'écran, dans la barre des tâches et dans Alt-Tab. Les exigences de
-comportement l'emportent sur le détail d'implémentation.
+**Correction post-revue V1.** Cette section imposait initialement une fenêtre
+*message-only* (`HWND_MESSAGE`). C'était incompatible avec trois exigences des
+sections 5.4 et 7 : une fenêtre message-only n'a pas de z-order, n'est pas
+énumérable et **ne reçoit aucun message de diffusion**. Elle ne peut donc ni
+recevoir `WM_ENDSESSION`, ni recevoir `TaskbarCreated`, ni servir de cible à
+`SetForegroundWindow`. La V2 a ajouté une quatrième raison : `RegisterHotKey`
+ne fonctionne pas sur une fenêtre message-only. La fenêtre est donc **top-level,
+cachée** : parent `IntPtr.Zero`, style étendu `WS_EX_TOOLWINDOW`, jamais affichée
+(ni `WS_VISIBLE`, ni `ShowWindow`).
 
 ```
 DesktopIconsToggle/
 ├── DesktopIconsToggle.csproj
-├── Program.cs           point d'entrée, câblage des composants, arrêt propre
+├── Program.cs           point d'entrée, câblage, récupération après crash, arrêt propre
 ├── AppWindow.cs         fenêtre top-level cachée, WndProc, boucle de messages
-├── Native/Win32.cs      P/Invoke : user32, shell32, advapi32, kernel32
+├── Native/Win32.cs      P/Invoke : user32, shell32, gdi32, kernel32
 ├── IconToggler.cs       localisation de SHELLDLL_DefView, toggle, lecture d'état
-├── DesktopWatcher.cs    WinEvent hook, événement DesktopForegroundChanged
-├── ClickDetector.cs     machine à états du double-clic, sans Win32 (testable)
-├── MouseHook.cs         WH_MOUSE_LL, filtrage bureau, délègue à ClickDetector
+├── DesktopWatcher.cs    WinEvent hook, exemptions shell et processus propre
+├── HotKey.cs            RegisterHotKey, enregistrement transactionnel
+├── HotkeyCapture.cs     fenêtre modale de choix de combinaison
+├── HotkeyFormatter.cs   combinaison → libellé français (sans Win32, testable)
+├── TaskbarHider.cs      SHAppBarMessage, auto-masquage, état d'origine
+├── TaskbarPolicy.cs     règle de propriété de l'auto-masquage (sans Win32, testable)
+├── Settings.cs          persistance registre, marqueurs de récupération
 ├── TrayIcon.cs          Shell_NotifyIcon, menu contextuel, TaskbarCreated
-├── Autostart.cs         lecture/écriture de la clé Run
+├── Autostart.cs         IRegistryValueStore, RegistryValueStore, clé Run
 └── app.ico
 ```
 
 ### 5.1 `IconToggler`
 
-Responsabilité : parler à Explorer. Ne connaît ni la souris ni le tray.
+Responsabilité : parler à Explorer. Ne connaît ni le clavier ni le tray.
 
-- `IntPtr FindDefView()` — `FindWindow("Progman", null)` puis
-  `FindWindowEx(progman, 0, "SHELLDLL_DefView", null)`. Si absent (fond d'écran
-  animé, second bureau), énumérer les fenêtres de niveau supérieur de classe
-  `WorkerW` et chercher un enfant `SHELLDLL_DefView`.
-- `bool AreIconsVisible()` — `IsWindowVisible` sur l'enfant `SysListView32` de
-  la DefView. **L'état est lu depuis les fenêtres, jamais depuis la valeur de
-  registre `HideIcons`**, qui n'est pas mise à jour de façon fiable par le
-  message de toggle.
-- `void Toggle()` — `PostMessage(defView, WM_COMMAND, 0x7402, 0)`.
-- `void EnsureVisible()` — toggle uniquement si les icônes sont masquées.
-
-Si aucune DefView n'est trouvée, les méthodes échouent silencieusement ; l'appli
-ne plante pas.
+- `FindDefView()` — `Progman` → `SHELLDLL_DefView`. Si absent (fond d'écran animé,
+  multi-écran), énumérer les `WorkerW` de niveau supérieur.
+- `AreIconsVisible()` — `IsWindowVisible` sur l'enfant `SysListView32`.
+  **L'état est lu depuis les fenêtres, jamais depuis la valeur de registre
+  `HideIcons`**, qui n'est pas mise à jour de façon fiable par le message de
+  toggle. La méthode **échoue ouvert** : elle répond « visibles » quand le bureau
+  est illisible, pour qu'un état indéterminé ne provoque jamais un masquage.
+- `Toggle()` — `PostMessage(defView, WM_COMMAND, 0x7402, 0)`.
+- `EnsureVisible()` — **renvoie `false` quand le bureau est injoignable**, afin que
+  l'appelant conserve son marqueur de récupération au lieu de l'effacer. Sinon,
+  toggle uniquement si les icônes sont masquées.
 
 ### 5.2 `DesktopWatcher`
 
-`SetWinEventHook(EVENT_SYSTEM_FOREGROUND, EVENT_SYSTEM_FOREGROUND, 0, cb, 0, 0,
-WINEVENT_OUTOFCONTEXT)`. À chaque changement, `GetClassName` de la fenêtre au
-premier plan ; le bureau est actif si la classe vaut `Progman` ou `WorkerW`.
-Émet `DesktopForegroundChanged(bool)` seulement quand la valeur change. L'état
-initial est calculé au démarrage. Le delegate de callback est conservé dans un
-champ statique pour empêcher son ramassage par le GC.
+`SetWinEventHook(EVENT_SYSTEM_FOREGROUND, …, WINEVENT_OUTOFCONTEXT)`. Le delegate
+est conservé dans un **champ d'instance** pour empêcher son ramassage par le GC.
+Le bureau est actif si la classe de la fenêtre au premier plan vaut `Progman` ou
+`WorkerW`. `Changed` n'est émis que sur transition réelle ; `Start()` publie en
+plus l'état initial et renvoie `false` si le hook n'a pas pu s'installer.
 
-### 5.3 `MouseHook`
+Deux exemptions, toutes deux nécessaires :
 
-`SetWindowsHookEx(WH_MOUSE_LL, ...)` installé une fois pour toute la durée de
-vie du processus.
+- **Fenêtres du shell** (`Shell_TrayWnd`, `Shell_SecondaryTrayWnd`,
+  `NotifyIconOverflowWindow`, `TopLevelWindowForOverflowXamlIsland`) : cliquer
+  notre icône active la barre des tâches, ce qui supprimerait l'icône sous le
+  curseur avant l'arrivée du callback de clic.
+- **Fenêtres de notre propre processus**, par comparaison d'identifiant de
+  processus : `TrayIcon` appelle `SetForegroundWindow` avant d'ouvrir son menu, et
+  la fenêtre de capture est une vraie fenêtre. Une exemption par handle unique ne
+  couvrait que la première et laissait la seconde rouvrir le défaut.
 
-Le callback sort immédiatement (`CallNextHookEx`) si `wParam != WM_MBUTTONDOWN`.
-Aucune allocation sur ce chemin. Sur `WM_MBUTTONDOWN` :
+### 5.3 `HotKey` et `HotkeyCapture`
 
-1. Si `now - lastMiddleClick > GetDoubleClickTime() * 1.5` → mémoriser l'instant,
-   sortir.
-2. Sinon, deuxième clic : `WindowFromPoint(pt)`, puis remonter la chaîne des
-   parents. Déclencher seulement si une classe de la chaîne appartient à
-   { `Progman`, `WorkerW`, `SHELLDLL_DefView`, `SysListView32` }.
-3. Poster un message applicatif à la fenêtre message-only ; ne jamais appeler
-   `Toggle()` depuis le hook (un hook lent est désinstallé par Windows).
-4. Réinitialiser `lastMiddleClick` pour qu'un triple clic ne compte pas double.
+`HotKey` enregistre la combinaison sur la fenêtre top-level, avec `MOD_NOREPEAT`
+pour qu'un maintien ne répète pas. `Register` est **transactionnel** : il
+désenregistre l'actuelle, tente la nouvelle, et **remet l'ancienne en cas d'échec**
+en renvoyant `false`. Le bit `MOD_NOREPEAT` n'est pas conservé dans les propriétés
+publiques, qui reflètent le choix de l'utilisateur et servent à l'affichage et à la
+persistance.
 
-Le hook laisse toujours passer l'événement : le clic milieu sur le bureau n'a
-aucune action native, rien n'est donc cassé.
+`HotkeyCapture` est une fenêtre modale avec sa propre boucle de messages, qui
+continue de distribuer aux autres fenêtres pour que l'app reste vivante. Règles :
 
-**Compromis assumé :** le hook reste actif hors bureau. L'installer dynamiquement
-ferait perdre le premier clic pendant que le bureau prend le focus. Le coût réel
-est d'une comparaison d'entier par événement souris.
+- Au moins un modificateur est exigé.
+- **Échap seul annule** ; Échap avec modificateur est un choix valide, ce qui
+  laisse `Win+Échap` disponible.
+- **Alt+F4 annule** au lieu d'être capturé : `RegisterHotKey` l'accorderait, et
+  l'app posséderait alors « fermer la fenêtre » pour tout le système.
+- La combinaison est **testée par un `RegisterHotKey` temporaire** avant d'être
+  acceptée, donc aucun raccourci inopérant ne peut être enregistré.
+- Une seule fenêtre de capture à la fois : une seconde orphelinerait la première,
+  dont le bouton de fermeture agit sur un handle statique.
+- `WM_QUIT` est **reposté** et non avalé, sinon l'app se bloquerait à la fermeture.
 
-### 5.4 `TrayIcon`
+**Limite connue :** une combinaison déjà enregistrée par un autre processus lui est
+livrée à lui ; la fenêtre ne voit rien passer et ne peut pas le signaler. Le test
+`RegisterHotKey` n'attrape qu'une course entre la vérification et l'enregistrement.
 
-`Shell_NotifyIcon` avec `NIM_ADD` / `NIM_DELETE` piloté par
-`DesktopForegroundChanged`. `uCallbackMessage` pointe vers la fenêtre
-message-only.
+### 5.4 `TaskbarHider` et `TaskbarPolicy`
 
-- Clic gauche (`WM_LBUTTONUP`) → toggle.
-- Clic droit (`WM_RBUTTONUP`) → `SetForegroundWindow` puis `TrackPopupMenu` :
-  - *Afficher / Masquer les icônes* (libellé calculé depuis `AreIconsVisible()`)
-  - *Démarrage automatique* (coché selon `Autostart.IsEnabled()`)
-  - séparateur
-  - *Quitter*
-- Sur `RegisterWindowMessage("TaskbarCreated")` : si le bureau est au premier
-  plan, réajouter l'icône (redémarrage d'Explorer).
-- L'infobulle indique l'état courant.
+Masquer la barre = activer l'**auto-masquage de Windows**. Explorer gère la
+révélation au bord de l'écran ; l'application n'implémente aucune détection.
 
-### 5.5 `Autostart`
+`SetAutoHide` fait une lecture-modification-écriture pour **préserver le bit
+`ABS_ALWAYSONTOP`**, et **confirme par relecture** — `ABM_SETSTATE` renvoie
+toujours `TRUE`, donc la seule preuve est de relire l'état.
 
-Valeur `DesktopIconsToggle` sous
-`HKCU\Software\Microsoft\Windows\CurrentVersion\Run`, contenant le chemin de
-l'exe entre guillemets. `IsEnabled()` compare au chemin courant ; si l'exe a été
-déplacé, la valeur est réécrite au prochain basculement.
+`CaptureOriginalState` **refuse de lire tant que `Shell_TrayWnd` n'existe pas**.
+`ABM_GETSTATE` renvoie `0` aussi bien quand l'auto-masquage est désactivé que
+quand le shell ne répond pas ; or le chemin de lancement principal est la clé
+`Run` à l'ouverture de session, précisément quand le shell n'est pas prêt. Prendre
+`0` pour argent comptant désactiverait définitivement le réglage d'un utilisateur
+qui s'en sert. Tant que `HasOriginalState` est faux, l'application ne touche pas à
+la barre ; la lecture est retentée sur `TaskbarCreated`.
 
-### 5.6 `Program`
+`TaskbarPolicy.Decide(hidden, originalAutoHide)` isole la règle de propriété en
+logique pure et testée : on écrit `hidden || originalAutoHide`, et on ne se déclare
+propriétaire que si `hidden && !originalAutoHide`. Conséquence voulue : quelqu'un
+qui utilisait déjà l'auto-masquage le conserve, et aucun marqueur n'est posé pour
+lui.
 
-1. Mutex nommé `Local\DesktopIconsToggle` ; sortie immédiate si déjà lancé.
-2. Création de la fenêtre top-level cachée (`WS_EX_TOOLWINDOW`, jamais affichée).
-3. Initialisation de `IconToggler`, `DesktopWatcher`, `MouseHook`, `TrayIcon`.
-4. `GetMessage` / `DispatchMessage`.
-5. À l'arrêt : `IconToggler.EnsureVisible()`, `NIM_DELETE`, désinstallation des
-   hooks.
+### 5.5 `Settings`
+
+Sous `HKCU\Software\DesktopIconsToggle`, valeurs `REG_SZ` décimales :
+`HotkeyModifiers`, `HotkeyVirtualKey`, `HideTaskbar`, `TaskbarHiddenByUs`,
+`IconsHiddenByUs`. `Load()` est **total** : toute valeur absente, vide ou illisible
+retombe sur son défaut sans affecter les autres.
+
+Les deux derniers sont des **marqueurs de récupération après crash**. L'application
+les efface à chaque sortie propre, donc les trouver posés au démarrage signifie que
+la session précédente a été tuée. Windows conserve l'état masqué des icônes comme
+de la barre : sans ces marqueurs, rien ne le rétablirait jamais.
+
+### 5.6 `TrayIcon`
+
+`Shell_NotifyIcon` piloté par `DesktopWatcher`. `cbSize` vient de
+`Marshal.SizeOf<NOTIFYICONDATAW>()` : la structure est volontairement tronquée à la
+frontière V2, une taille codée en dur ferait rejeter l'appel. L'état `_visible`
+n'est enregistré **que si le shell a accepté**, sinon un `NIM_DELETE` échoué
+laisserait une icône fantôme que le processus ne peut plus adresser.
+
+Menu : *Afficher/Masquer les icônes* — séparateur — *Masquer aussi la barre des
+tâches* (cochable), *Raccourci : …*, *Démarrage automatique* (cochable) —
+séparateur — *Quitter*. `SetForegroundWindow` avant `TrackPopupMenu` et `WM_NULL`
+posté après, sans quoi le menu refuse de se fermer sur un clic à côté.
+
+### 5.7 `Autostart`
+
+Valeur `DesktopIconsToggle` sous la clé `Run`, contenant le chemin de l'exe entre
+guillemets. `IsEnabled()` compare au chemin courant ; si l'exe a été déplacé, la
+valeur est réécrite au prochain basculement. `RegistryValueStore` prend son
+sous-chemin en paramètre et sert aussi bien la clé `Run` que celle des réglages.
+
+### 5.8 `Program`
+
+1. Mutex `Local\DesktopIconsToggle` ; sortie immédiate si déjà lancé.
+2. `Settings.Load()`.
+3. **Récupération des icônes** si `IconsHiddenByUs` est posé.
+4. **Récupération de la barre** si `TaskbarHiddenByUs` est posé — impérativement
+   **avant** `CaptureOriginalState()`, sinon notre propre résidu serait enregistré
+   comme le réglage d'origine de l'utilisateur et deviendrait permanent.
+5. `CaptureOriginalState()`.
+6. Fenêtre, tray, watcher, puis `HotKey.Register` ; un échec est signalé par
+   l'infobulle et laisse le tray comme seul déclencheur.
+7. `GetMessage` / `DispatchMessage`.
+8. À l'arrêt, sous garde de ré-entrance : `EnsureVisible()`, `RestoreOriginal()`,
+   puis effacement des marqueurs **uniquement pour les restaurations confirmées**.
+
+`ToggleAll` pose `IconsHiddenByUs` **avant** de poster quoi que ce soit, puis un
+`WM_TIMER` à 150 ms réconcilie marqueur, barre et infobulle avec l'état
+réellement obtenu. Explorer met un moment à appliquer un message posté : deux
+bascules rapprochées liraient deux fois la même valeur périmée et laisseraient le
+marqueur à l'opposé du résultat.
 
 ## 6. Flux de données
 
 ```
-double-clic molette ──► MouseHook ──► PostMessage(WM_APP_TOGGLE) ─┐
-clic gauche tray ─────► TrayIcon ────────────────────────────────►├─► IconToggler.Toggle()
-menu contextuel ──────► TrayIcon ────────────────────────────────┘
+raccourci clavier ────► WM_HOTKEY ──┐
+clic gauche tray ─────► TrayIcon ───┼──► ToggleAll() ──► IconToggler.Toggle()
+menu contextuel ──────► TrayIcon ───┘                └─► TaskbarHider (si option)
+                                                     └─► WM_TIMER 150 ms
+                                                          └─► réconciliation
 
 changement de premier plan ──► DesktopWatcher ──► TrayIcon.SetVisible(bool)
+TaskbarCreated ──────────────► TrayIcon.Readd() + capture différée éventuelle
 ```
 
 ## 7. Gestion des erreurs
 
 | Situation | Comportement |
 |---|---|
-| `SHELLDLL_DefView` introuvable | Le toggle ne fait rien ; l'infobulle affiche « Bureau indisponible » |
+| `SHELLDLL_DefView` introuvable | Le toggle ne fait rien ; l'infobulle affiche « bureau indisponible » |
 | Explorer redémarre | `TaskbarCreated` réajoute l'icône ; les handles sont relocalisés à la demande |
-| `SetWindowsHookEx` échoue | L'appli continue avec le seul tray ; l'infobulle le signale |
+| `RegisterHotKey` échoue | L'appli continue avec le seul tray ; l'infobulle le signale et le menu affiche « aucun » |
+| `SHAppBarMessage` sans réponse | Aucune action sur la barre tant que l'état d'origine n'est pas connu |
 | Écriture registre refusée | L'entrée de menu se décoche ; aucune exception remontée |
-| Fermeture de session (`WM_ENDSESSION`) | Même arrêt propre que *Quitter* |
+| Fermeture de session (`WM_ENDSESSION`, `wParam` vrai) | Même arrêt propre que *Quitter*, synchrone |
+| Session précédente tuée | Marqueurs relus au démarrage ; icônes et barre restaurées |
 
-**Filet de sécurité :** les icônes sont toujours restaurées à la sortie du
-processus. Il est impossible de se retrouver avec un bureau vide et aucun moyen
-de le rétablir depuis l'application.
+**Filet de sécurité :** les icônes sont restaurées à toute sortie du processus, et
+la barre des tâches remise dans l'état trouvé au lancement. Une restauration non
+confirmée **laisse son marqueur posé** plutôt que de l'effacer : une réparation
+inutile au lancement suivant est sans conséquence, une réparation manquée ne l'est
+pas. Il doit être impossible de se retrouver avec un bureau vide et aucun moyen de
+le rétablir.
 
 ## 8. Tests
 
-L'essentiel du code est de l'interopérabilité Win32 : la vérification est
-manuelle et scriptée, il n'y a pas de couche métier à tester unitairement.
+55 tests unitaires (xUnit, projet séparé exclu de la publication AOT). Tout ce qui
+peut être extrait de l'interopérabilité Win32 l'est, précisément pour être testé :
 
-Tests unitaires (xUnit, projet séparé exclu de la publication AOT) :
-- `ClickDetector` : machine à états du double-clic, sur une horloge injectée —
-  deux clics dans la fenêtre déclenchent, hors fenêtre non, un triple clic
-  déclenche une seule fois. La logique est extraite de `MouseHook` précisément
-  pour être testable sans Win32.
-- `Autostart` : lecture/écriture via `IRegistryValueStore`, remplacé par un
-  faux magasin en mémoire dans les tests.
+- `HotkeyFormatter` — libellés et ordre des modificateurs, accents compris.
+- `Settings` — défauts, aller-retour, valeurs corrompues isolées les unes des autres.
+- `Autostart` — via `IRegistryValueStore`, remplacé par un faux magasin en mémoire.
+- `TaskbarPolicy` — les quatre cas de la table de vérité, dont celui qui porte la
+  garantie : un utilisateur déjà en auto-masquage le conserve et n'est jamais
+  revendiqué.
+- `TaskbarHider.ApplyAutoHide` — préservation de `ABS_ALWAYSONTOP` dans les deux sens.
 
-Checklist manuelle, à exécuter avant de considérer le travail terminé :
-1. Double-clic molette sur zone vide du bureau → les icônes disparaissent ;
-   à nouveau → elles réapparaissent.
-2. Double-clic molette sur une icône → même résultat, aucun programme lancé.
-3. Double-clic molette dans une autre application → aucun effet.
-4. Le bureau passe au premier plan → l'icône apparaît dans la zone de
-   notification ; une autre fenêtre est activée → elle disparaît.
-5. Menu contextuel : chaque entrée agit, l'état coché reflète la réalité.
-6. *Démarrage automatique* coché → la valeur de registre existe ; décoché →
-   elle est supprimée.
-7. Redémarrage d'Explorer via le Gestionnaire des tâches → l'icône revient.
-8. *Quitter* alors que les icônes sont masquées → elles sont restaurées.
-9. Deuxième lancement → sortie immédiate, une seule instance.
-10. Gestionnaire des tâches : mémoire ≈ 5 Mo, CPU 0 % au repos.
+**Aucun test ne touche le vrai registre ni le vrai shell.**
+
+Checklist manuelle, non automatisable :
+
+1. Raccourci → les icônes disparaissent ; à nouveau → elles reviennent.
+2. Icône de notification : apparaît sur le bureau, disparaît ailleurs.
+3. Clic gauche sur l'icône → bascule. Clic droit → menu correct et cohérent.
+4. *Masquer aussi la barre des tâches* : la barre s'auto-masque et revient au survol
+   du bas de l'écran.
+5. *Raccourci …* : la fenêtre s'affiche correctement, Échap seul annule, Alt+F4
+   annule, une combinaison valide est acceptée et persiste après relance.
+6. *Démarrage automatique* : la valeur de registre apparaît et disparaît.
+7. Redémarrage d'Explorer → l'icône revient.
+8. Masquer puis *Quitter* → tout est restauré avant la fermeture.
+9. Masquer puis tuer le processus → tout est restauré au lancement suivant.
+10. Deuxième lancement → sortie immédiate, une seule instance.
+11. Deux bascules à moins de 150 ms → l'état final et l'infobulle concordent.
+12. Si l'auto-masquage était déjà actif avant installation → il l'est toujours après
+    un cycle masquer/restaurer/quitter.
 
 ## 9. Livrables
 
-- `bin/Release/net10.0/win-x64/publish/DesktopIconsToggle.exe`, autonome.
-- `README.md` : usage, raccourci, désinstallation (décocher le démarrage
-  automatique puis supprimer l'exe).
+- `src/DesktopIconsToggle/bin/Release/net10.0-windows/win-x64/publish/DesktopIconsToggle.exe`,
+  autonome, 1 463 808 octets.
+- `README.md` : usage, raccourci, barre des tâches, désinstallation (y compris la
+  suppression de `HKCU\Software\DesktopIconsToggle`).
