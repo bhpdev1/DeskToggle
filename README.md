@@ -54,10 +54,12 @@ aucune combinaison de cette famille n'est proposée par défaut. Dès que vous e
 une, elle n'est plus jamais remplacée : si elle cesse de fonctionner,
 l'application le signale au lieu d'en substituer une autre.
 
-La combinaison est testée avant d'être acceptée, donc vous ne pouvez pas
-enregistrer un raccourci qui ne fonctionnerait pas.
+La combinaison est testée par un enregistrement réel avant d'être acceptée, ce qui
+écarte les combinaisons que Windows refuse. Cela ne couvre pas le cas ci-dessus :
+une combinaison accordée puis consommée en amont passe le test et ne fonctionne
+pas pour autant.
 
-Une réserve : si une combinaison est **déjà enregistrée par Windows ou par une
+Une autre réserve : si une combinaison est **déjà enregistrée par Windows ou par une
 autre application**, c'est cette application qui la reçoit — la fenêtre de capture
 ne voit rien passer et reste silencieuse. Si vos touches semblent sans effet dans
 la fenêtre, c'est presque toujours ça. Essayez quelque chose de manifestement
