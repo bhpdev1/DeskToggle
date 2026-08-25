@@ -110,7 +110,7 @@ internal static class Program
         if (msg == Win32.WM_TIMER && (nuint)wParam == TooltipTimerId)
         {
             Win32.KillTimer(_windowHandle, TooltipTimerId);
-            RefreshTooltip();
+            ReconcileWithDesktop();
             return true;
         }
 
@@ -142,6 +142,14 @@ internal static class Program
         if (_taskbarCreatedMessage != 0 && msg == _taskbarCreatedMessage)
         {
             _tray?.Readd();
+
+            // Explorer has (re)started. If we never got a trustworthy reading — we were
+            // launched at logon before the shell was up — take it now.
+            if (_taskbar is not null && !_taskbar.HasOriginalState)
+            {
+                _taskbar.CaptureOriginalState();
+            }
+
             return true;
         }
 
@@ -190,9 +198,13 @@ internal static class Program
 
     private static void ToggleAll()
     {
-        // Read the target before toggling: Explorer takes a moment to reflect the
-        // posted message, so asking again afterwards would give the stale answer.
         bool willHide = IconToggler.AreIconsVisible();
+
+        // Claim them before posting. If we are killed between the post and the timer
+        // below, the next launch finds the marker set and restores — a needless restore
+        // is harmless, a missed one is not.
+        _settings!.IconsHiddenByUs = true;
+        _settings.Save();
 
         if (!IconToggler.Toggle())
         {
@@ -200,36 +212,62 @@ internal static class Program
             return;
         }
 
-        // Record that we are the ones hiding them. Explorer persists the hidden state on
-        // its own, so a session killed before Shutdown would otherwise leave the user with
-        // an empty desktop and nothing that ever puts it back.
-        _settings!.IconsHiddenByUs = willHide;
-
+        // Apply the taskbar immediately so it tracks the icons without a visible lag.
+        // The timer reconciles both against what Explorer actually settled on.
         if (_settings.HideTaskbar)
         {
             ApplyTaskbarState(willHide);
+            _settings.Save();
         }
 
-        _settings.Save();
-
         // Explorer needs a moment before the window state reflects the posted toggle.
-        // Sleeping here would stall the thread that services the low-level mouse hook,
-        // and Windows silently unhooks a callback thread that overruns its timeout.
+        // Sleeping here would block the message loop that also services the hotkey and
+        // the tray icon, so a timer is used instead of a wait.
         if (_windowHandle != IntPtr.Zero)
         {
             Win32.SetTimer(_windowHandle, TooltipTimerId, 150, IntPtr.Zero);
         }
     }
 
+    /// <summary>
+    /// Replaces the intent recorded before the toggle with the state Explorer actually
+    /// settled on. Two toggles posted inside Explorer's latency window would otherwise
+    /// leave the marker, the taskbar and the tooltip all describing the opposite result.
+    /// </summary>
+    private static void ReconcileWithDesktop()
+    {
+        bool iconsHidden = !IconToggler.AreIconsVisible();
+
+        _settings!.IconsHiddenByUs = iconsHidden;
+
+        if (_settings.HideTaskbar)
+        {
+            ApplyTaskbarState(iconsHidden);
+        }
+
+        _settings.Save();
+        RefreshTooltip();
+    }
+
     private static void ApplyTaskbarState(bool hidden)
     {
+        // Acting on an original state we never trustworthily read is exactly the danger
+        // C3 guards against: refuse until CaptureOriginalState has succeeded (including a
+        // retry once TaskbarCreated fires).
+        if (!_taskbar!.HasOriginalState)
+        {
+            return;
+        }
+
+        (bool autoHide, bool ownedByUs) = TaskbarPolicy.Decide(hidden, _taskbar.OriginalAutoHide);
+
         // When restoring, go back to whatever the user had before we started —
         // someone who already used auto-hide must keep it.
-        _taskbar!.SetAutoHide(hidden || _taskbar.OriginalAutoHide);
+        _taskbar.SetAutoHide(autoHide);
 
         // Only claim responsibility when we actually changed it from their original.
         // Persisting is the caller's job, so a single toggle writes the registry once.
-        _settings!.TaskbarHiddenByUs = hidden && !_taskbar.OriginalAutoHide;
+        _settings!.TaskbarHiddenByUs = ownedByUs;
     }
 
     private static void ChangeHotkey()
@@ -271,15 +309,26 @@ internal static class Program
             return;
         }
 
-        IconToggler.EnsureVisible();   // never leave the user without icons
+        bool iconsRestored = IconToggler.EnsureVisible();   // never leave the user without icons
 
         _hotKey?.Dispose();
-        _taskbar?.RestoreOriginal();
+        bool taskbarRestored = _taskbar?.RestoreOriginal() ?? true;
 
         if (_settings is not null)
         {
-            _settings.TaskbarHiddenByUs = false;
-            _settings.IconsHiddenByUs = false;
+            // Only clear a marker whose restore we could confirm. A marker left set costs
+            // nothing — the next launch re-runs the recovery, which is idempotent — while
+            // clearing it wrongly deletes the only record that anything needs repairing.
+            if (iconsRestored)
+            {
+                _settings.IconsHiddenByUs = false;
+            }
+
+            if (taskbarRestored)
+            {
+                _settings.TaskbarHiddenByUs = false;
+            }
+
             _settings.Save();
         }
 

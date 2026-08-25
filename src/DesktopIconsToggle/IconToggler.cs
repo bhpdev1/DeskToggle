@@ -80,12 +80,19 @@ internal static class IconToggler
                                   new IntPtr(Win32.TOGGLE_DESKTOP_ICONS), IntPtr.Zero);
     }
 
-    /// <summary>Safety net used on every exit path.</summary>
-    public static void EnsureVisible()
+    /// <summary>
+    /// Safety net used on every exit path. Returns false when the desktop could not be
+    /// reached at all, so the caller keeps its recovery marker instead of clearing it.
+    /// </summary>
+    public static bool EnsureVisible()
     {
-        if (!AreIconsVisible())
+        if (FindDefView() == IntPtr.Zero)
         {
-            Toggle();
+            // AreIconsVisible fails open by design, so it would answer "visible" here and
+            // hide the fact that we could not act. Report the failure instead.
+            return false;
         }
+
+        return AreIconsVisible() || Toggle();
     }
 }
