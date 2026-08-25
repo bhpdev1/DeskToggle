@@ -7,7 +7,7 @@ et optionnellement la barre des tâches avec.
 
 Deux façons de basculer :
 
-- **Raccourci clavier global**, `Win+Échap` par défaut, configurable depuis le menu.
+- **Raccourci clavier global**, `Win+Maj+D` par défaut, configurable depuis le menu.
 - **Icône de notification**, présente uniquement quand le bureau est au premier
   plan. Clic gauche pour basculer, clic droit pour le menu.
 
@@ -38,8 +38,16 @@ Deux conséquences :
 ### Changer le raccourci
 
 Menu → *Raccourci : …*. Appuyez sur la combinaison souhaitée ; au moins une touche
-de modification est requise. **Échap seul annule**, ce qui laisse `Win+Échap`
-disponible comme choix valide.
+de modification est requise. **Échap seul et Alt+F4 annulent** — Échap accompagné
+d'un modificateur reste un choix valide, et Alt+F4 est refusé parce que
+l'enregistrer confisquerait « fermer la fenêtre » à tout le système.
+
+Au tout premier lancement, tant que vous n'avez rien choisi vous-même,
+l'application essaie `Win+Maj+D`, puis `Ctrl+Alt+D`, puis `Ctrl+Alt+Maj+D`, et
+garde la première que Windows accorde — certaines combinaisons sont réservées par
+le système. Le menu affiche celle réellement obtenue. Dès que vous en choisissez
+une, elle n'est plus jamais remplacée : si elle cesse de fonctionner,
+l'application le signale au lieu d'en substituer une autre.
 
 La combinaison est testée avant d'être acceptée, donc vous ne pouvez pas
 enregistrer un raccourci qui ne fonctionnerait pas.
@@ -57,7 +65,19 @@ dans l'état où elle l'a trouvée.
 
 Si le processus est tué sans passer par *Quitter*, Windows conserve l'état masqué —
 l'application le note et **répare au lancement suivant**, pour les icônes comme
-pour la barre des tâches.
+pour la barre des tâches. Si la restauration ne peut pas être confirmée (Explorer
+en cours de redémarrage), la note est **conservée** plutôt qu'effacée, et la
+réparation est retentée au lancement d'après.
+
+Reste un cas qu'aucun programme ne peut couvrir : processus tué avec les icônes
+masquées, et jamais relancé. La récupération est alors manuelle et tient en deux
+clics — **clic droit sur le bureau → Affichage → Afficher les éléments du Bureau**.
+Ce menu reste toujours disponible : l'application n'envoie rien d'autre que cette
+même commande et ne désactive jamais rien.
+
+Les bascules trop rapprochées (moins de 300 ms) sont ignorées. Cela évite le
+clignotement d'un appui répété, et empêche qu'une deuxième bascule parte avant que
+l'explorateur ait appliqué la première.
 
 ## Installation
 

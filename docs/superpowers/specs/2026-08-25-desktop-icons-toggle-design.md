@@ -14,7 +14,7 @@ invisible et quasi gratuit en ressources.
 ## 2. Objectifs
 
 - Toggle des icônes du bureau via un **raccourci clavier global configurable**,
-  `Win+Échap` par défaut.
+  `Win+Maj+D` par défaut, avec chaîne de repli (§5.3).
 - Toggle via une **icône de zone de notification** présente uniquement quand le
   bureau est au premier plan.
 - Option **« masquer aussi la barre des tâches »**, étendant la bascule.
@@ -87,6 +87,7 @@ DesktopIconsToggle/
 ├── HotkeyFormatter.cs   combinaison → libellé français (sans Win32, testable)
 ├── TaskbarHider.cs      SHAppBarMessage, auto-masquage, état d'origine
 ├── TaskbarPolicy.cs     règle de propriété de l'auto-masquage (sans Win32, testable)
+├── ToggleThrottle.cs    anti-rebond des bascules (sans Win32, testable)
 ├── Settings.cs          persistance registre, marqueurs de récupération
 ├── TrayIcon.cs          Shell_NotifyIcon, menu contextuel, TaskbarCreated
 ├── Autostart.cs         IRegistryValueStore, RegistryValueStore, clé Run
@@ -151,6 +152,15 @@ continue de distribuer aux autres fenêtres pour que l'app reste vivante. Règle
   dont le bouton de fermeture agit sur un handle statique.
 - `WM_QUIT` est **reposté** et non avalé, sinon l'app se bloquerait à la fermeture.
 
+**Chaîne de repli.** Tant que l'utilisateur n'a rien choisi lui-même
+(`HotkeyConfigured` faux), le démarrage tente `Win+Maj+D`, puis `Ctrl+Alt+D`, puis
+`Ctrl+Alt+Maj+D`, et conserve la première accordée. Windows réserve certaines
+combinaisons — `Win+Échap` (quitter la Loupe), `Win+D`, `Win+Alt+D` — et un défaut
+fixe peut donc laisser l'application sans déclencheur clavier, ce qui s'est produit
+en test. La combinaison retenue est persistée et affichée. Dès que l'utilisateur en
+choisit une, `HotkeyConfigured` passe à vrai et **plus aucune substitution
+silencieuse n'a lieu** : un échec est signalé, pas contourné.
+
 **Limite connue :** une combinaison déjà enregistrée par un autre processus lui est
 livrée à lui ; la fenêtre ne voit rien passer et ne peut pas le signaler. Le test
 `RegisterHotKey` n'attrape qu'une course entre la vérification et l'enregistrement.
@@ -178,11 +188,23 @@ propriétaire que si `hidden && !originalAutoHide`. Conséquence voulue : quelqu
 qui utilisait déjà l'auto-masquage le conserve, et aucun marqueur n'est posé pour
 lui.
 
-### 5.5 `Settings`
+### 5.5 `ToggleThrottle`
+
+Toute bascule arrivant moins de 300 ms après la précédente est ignorée. Deux
+raisons : un appui répété faisait clignoter le bureau et les fenêtres, l'explorateur
+appliquant les messages en série ; et deux bascules postées à l'intérieur de la
+fenêtre de latence lisaient toutes deux le même état périmé, laissant le marqueur de
+récupération décrire l'inverse du résultat. Le seuil est choisi au-dessus du timer de
+réconciliation de 150 ms, pour qu'aucune bascule ne soit acceptée tant que la
+précédente n'est pas stabilisée. Un refus **ne repousse pas** la fenêtre, sinon
+maintenir la touche bloquerait la fonction indéfiniment. L'horloge est
+`Environment.TickCount64`, monotone et 64 bits.
+
+### 5.6 `Settings`
 
 Sous `HKCU\Software\DesktopIconsToggle`, valeurs `REG_SZ` décimales :
-`HotkeyModifiers`, `HotkeyVirtualKey`, `HideTaskbar`, `TaskbarHiddenByUs`,
-`IconsHiddenByUs`. `Load()` est **total** : toute valeur absente, vide ou illisible
+`HotkeyModifiers`, `HotkeyVirtualKey`, `HotkeyConfigured`, `HideTaskbar`,
+`TaskbarHiddenByUs`, `IconsHiddenByUs`. `Load()` est **total** : toute valeur absente, vide ou illisible
 retombe sur son défaut sans affecter les autres.
 
 Les deux derniers sont des **marqueurs de récupération après crash**. L'application
@@ -190,7 +212,7 @@ les efface à chaque sortie propre, donc les trouver posés au démarrage signif
 la session précédente a été tuée. Windows conserve l'état masqué des icônes comme
 de la barre : sans ces marqueurs, rien ne le rétablirait jamais.
 
-### 5.6 `TrayIcon`
+### 5.7 `TrayIcon`
 
 `Shell_NotifyIcon` piloté par `DesktopWatcher`. `cbSize` vient de
 `Marshal.SizeOf<NOTIFYICONDATAW>()` : la structure est volontairement tronquée à la
@@ -203,14 +225,14 @@ tâches* (cochable), *Raccourci : …*, *Démarrage automatique* (cochable) —
 séparateur — *Quitter*. `SetForegroundWindow` avant `TrackPopupMenu` et `WM_NULL`
 posté après, sans quoi le menu refuse de se fermer sur un clic à côté.
 
-### 5.7 `Autostart`
+### 5.8 `Autostart`
 
 Valeur `DesktopIconsToggle` sous la clé `Run`, contenant le chemin de l'exe entre
 guillemets. `IsEnabled()` compare au chemin courant ; si l'exe a été déplacé, la
 valeur est réécrite au prochain basculement. `RegistryValueStore` prend son
 sous-chemin en paramètre et sert aussi bien la clé `Run` que celle des réglages.
 
-### 5.8 `Program`
+### 5.9 `Program`
 
 1. Mutex `Local\DesktopIconsToggle` ; sortie immédiate si déjà lancé.
 2. `Settings.Load()`.
@@ -265,7 +287,7 @@ le rétablir.
 
 ## 8. Tests
 
-55 tests unitaires (xUnit, projet séparé exclu de la publication AOT). Tout ce qui
+66 tests unitaires (xUnit, projet séparé exclu de la publication AOT). Tout ce qui
 peut être extrait de l'interopérabilité Win32 l'est, précisément pour être testé :
 
 - `HotkeyFormatter` — libellés et ordre des modificateurs, accents compris.
