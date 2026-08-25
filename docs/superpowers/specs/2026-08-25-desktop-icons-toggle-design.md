@@ -47,11 +47,13 @@ verrouillage n'est nécessaire.
 ```
 DesktopIconsToggle/
 ├── DesktopIconsToggle.csproj
-├── Program.cs           point d'entrée, fenêtre message-only, message loop, arrêt propre
+├── Program.cs           point d'entrée, câblage des composants, arrêt propre
+├── AppWindow.cs         fenêtre message-only, WndProc, boucle de messages
 ├── Native/Win32.cs      P/Invoke : user32, shell32, advapi32, kernel32
 ├── IconToggler.cs       localisation de SHELLDLL_DefView, toggle, lecture d'état
 ├── DesktopWatcher.cs    WinEvent hook, événement DesktopForegroundChanged
-├── MouseHook.cs         WH_MOUSE_LL, détection du double-clic milieu
+├── ClickDetector.cs     machine à états du double-clic, sans Win32 (testable)
+├── MouseHook.cs         WH_MOUSE_LL, filtrage bureau, délègue à ClickDetector
 ├── TrayIcon.cs          Shell_NotifyIcon, menu contextuel, TaskbarCreated
 ├── Autostart.cs         lecture/écriture de la clé Run
 └── app.ico
@@ -170,10 +172,12 @@ L'essentiel du code est de l'interopérabilité Win32 : la vérification est
 manuelle et scriptée, il n'y a pas de couche métier à tester unitairement.
 
 Tests unitaires (xUnit, projet séparé exclu de la publication AOT) :
-- `MouseHook` : machine à états du double-clic, sur une horloge injectée —
+- `ClickDetector` : machine à états du double-clic, sur une horloge injectée —
   deux clics dans la fenêtre déclenchent, hors fenêtre non, un triple clic
-  déclenche une seule fois.
-- `Autostart` : lecture/écriture sur une racine de registre redirigée.
+  déclenche une seule fois. La logique est extraite de `MouseHook` précisément
+  pour être testable sans Win32.
+- `Autostart` : lecture/écriture via `IRegistryValueStore`, remplacé par un
+  faux magasin en mémoire dans les tests.
 
 Checklist manuelle, à exécuter avant de considérer le travail terminé :
 1. Double-clic molette sur zone vide du bureau → les icônes disparaissent ;
