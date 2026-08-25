@@ -15,6 +15,9 @@ internal static class Win32
     public const int WM_HOTKEY       = 0x0312;
     public const int WM_LBUTTONUP    = 0x0202;
     public const int WM_RBUTTONUP    = 0x0205;
+    public const int WM_KEYDOWN      = 0x0100;
+    public const int WM_SYSKEYDOWN   = 0x0104;
+    public const int WM_SETFONT      = 0x0030;
 
     public const int WM_APP          = 0x8000;
     public const int WM_APP_TRAY     = WM_APP + 2;
@@ -33,6 +36,15 @@ internal static class Win32
     public const uint LR_DEFAULTSIZE  = 0x00000040;
     public const uint LR_SHARED       = 0x00008000;
     public const uint WS_EX_TOOLWINDOW = 0x00000080;
+    public const uint WS_CAPTION       = 0x00C00000;
+    public const uint WS_SYSMENU       = 0x00080000;
+    public const uint WS_VISIBLE       = 0x10000000;
+    public const uint WS_CHILD         = 0x40000000;
+    public const uint SS_CENTER        = 0x00000001;
+    public const int  SW_SHOW          = 5;
+    public const int  SM_CXSCREEN      = 0;
+    public const int  SM_CYSCREEN      = 1;
+    public const int  DEFAULT_GUI_FONT = 17;
 
     // ---- tray ----
     public const int  NIM_ADD        = 0x00000000;
@@ -55,6 +67,14 @@ internal static class Win32
     public const uint MOD_SHIFT    = 0x0004;
     public const uint MOD_WIN      = 0x0008;
     public const uint MOD_NOREPEAT = 0x4000;
+
+    // ---- virtual keys ----
+    public const uint VK_SHIFT     = 0x10;
+    public const uint VK_CONTROL   = 0x11;
+    public const uint VK_MENU      = 0x12;
+    public const uint VK_ESCAPE    = 0x1B;
+    public const uint VK_LWIN      = 0x5B;
+    public const uint VK_RWIN      = 0x5C;
 
     // ---- appbar ----
     public const uint ABM_GETSTATE     = 0x00000004;
@@ -245,6 +265,34 @@ internal static class Win32
     [DllImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool UnregisterHotKey(IntPtr hWnd, int id);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool UpdateWindow(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    public static extern IntPtr SetFocus(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    public static extern short GetKeyState(int nVirtKey);
+
+    [DllImport("user32.dll")]
+    public static extern int GetSystemMetrics(int nIndex);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    public static extern IntPtr SendMessageW(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool SetWindowTextW(IntPtr hWnd, string lpString);
+
+    // ---- gdi32 ----
+    [DllImport("gdi32.dll")]
+    public static extern IntPtr GetStockObject(int fnObject);
 
     // ---- shell32 ----
     [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
