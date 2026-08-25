@@ -80,6 +80,10 @@ $out = New-Object System.Text.StringBuilder
 [void]$out.Append('//     Genere par tools/make-lucide-icons.ps1. Ne pas editer a la main.' + $nl)
 [void]$out.Append('//     Icones Lucide (https://lucide.dev), licence ISC.' + $nl)
 [void]$out.Append('// </auto-generated>' + $nl + $nl)
+# Roslyn traite tout fichier *.g.cs comme du code genere et exige sa propre directive
+# nullable (CS8669). L'emettre ici evite d'avoir a desactiver l'avertissement pour tout
+# le projet, ce qui masquerait de vrais problemes ailleurs.
+[void]$out.Append('#nullable enable' + $nl + $nl)
 [void]$out.Append('namespace DesktopIconsToggle;' + $nl + $nl)
 [void]$out.Append('/// <summary>' + $nl)
 [void]$out.Append('/// Masques alpha des icones du menu, rasterises depuis Lucide. Stockes comme couvertures' + $nl)

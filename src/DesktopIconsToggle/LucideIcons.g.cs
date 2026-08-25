@@ -3,6 +3,8 @@
 //     Icones Lucide (https://lucide.dev), licence ISC.
 // </auto-generated>
 
+#nullable enable
+
 namespace DesktopIconsToggle;
 
 /// <summary>
