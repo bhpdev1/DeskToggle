@@ -57,7 +57,15 @@ internal static class IconToggler
         }
 
         IntPtr list = Win32.FindWindowExW(defView, IntPtr.Zero, "SysListView32", null);
-        return list != IntPtr.Zero && Win32.IsWindowVisible(list);
+        if (list == IntPtr.Zero)
+        {
+            // The DefView exists but its list view does not — Explorer is mid-restart.
+            // Fail open like the missing-DefView path above: an indeterminate state must
+            // never let EnsureVisible post a toggle and hide icons that were visible.
+            return true;
+        }
+
+        return Win32.IsWindowVisible(list);
     }
 
     public static bool Toggle()
