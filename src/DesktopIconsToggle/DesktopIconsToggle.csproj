@@ -20,8 +20,6 @@
     celui-ci coche déjà plusieurs cases : raccourci clavier global et écriture dans
     la clé Run. Cela ne remplace pas une signature de code, qui reste la seule chose
     qui fasse taire SmartScreen.
-    Company et Copyright sont à remplacer par la véritable identité de l'éditeur
-    avant toute distribution.
   -->
   <PropertyGroup>
     <Version>2.0.0</Version>
@@ -32,8 +30,8 @@
          Gestionnaire des tâches et l'infobulle de l'explorateur. -->
     <AssemblyTitle>Masque et affiche les icônes du bureau</AssemblyTitle>
     <Description>Masque et affiche les icônes du bureau Windows, et la barre des tâches.</Description>
-    <Company>DesktopIconsToggle</Company>
-    <Copyright>Copyright © 2026</Copyright>
+    <Company>RBH</Company>
+    <Copyright>Copyright © 2026 RBH</Copyright>
     <!-- Sans cela la version produit porte le hash du commit, qui n'a rien à faire
          dans un binaire distribué. -->
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
