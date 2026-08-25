@@ -42,6 +42,7 @@ internal static class Program
 
         var watcher = new DesktopWatcher();
         _watcher = watcher;
+        watcher.IgnoreWindow = window.Handle;
         watcher.Changed += isDesktop => tray.SetVisible(isDesktop);
         bool watcherStarted = watcher.Start();
 

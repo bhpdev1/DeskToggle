@@ -25,6 +25,14 @@ internal sealed class DesktopWatcher : IDisposable
 
     public bool IsDesktopForeground { get; private set; }
 
+    /// <summary>
+    /// The app's own window. TrayIcon calls SetForegroundWindow on it before opening
+    /// the context menu, so it can legitimately take the foreground; treating that as
+    /// "the desktop lost the foreground" would delete the tray icon while the menu the
+    /// user just opened is still on screen.
+    /// </summary>
+    public IntPtr IgnoreWindow { get; set; }
+
     public static bool IsDesktopWindow(IntPtr hWnd)
     {
         if (hWnd == IntPtr.Zero)
@@ -55,6 +63,11 @@ internal sealed class DesktopWatcher : IDisposable
     {
         // OBJID_WINDOW == 0; ignore per-control focus noise.
         if (idObject != 0)
+        {
+            return;
+        }
+
+        if (hwnd == IgnoreWindow && hwnd != IntPtr.Zero)
         {
             return;
         }
