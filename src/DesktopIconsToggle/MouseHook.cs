@@ -28,9 +28,6 @@ internal sealed class MouseHook : IDisposable
         _detector = new ClickDetector((int)Win32.GetDoubleClickTime());
     }
 
-    /// <summary>Diagnostics only: fires on every completed middle double-click.</summary>
-    public Action<bool>? Trace { get; set; }
-
     public bool Install()
     {
         _hook = Win32.SetWindowsHookExW(Win32.WH_MOUSE_LL, _callback,
@@ -50,10 +47,7 @@ internal sealed class MouseHook : IDisposable
         if (_detector.RegisterClick(Win32.GetTickCount()))
         {
             var data = Marshal.PtrToStructure<Win32.MSLLHOOKSTRUCT>(lParam);
-            bool overDesktop = IsOverDesktop(data.pt);
-            Trace?.Invoke(overDesktop);
-
-            if (overDesktop)
+            if (IsOverDesktop(data.pt))
             {
                 // Never call into Explorer from a hook: Windows unhooks slow callbacks.
                 Win32.PostMessageW(_targetWindow, Win32.WM_APP_TOGGLE, IntPtr.Zero, IntPtr.Zero);
