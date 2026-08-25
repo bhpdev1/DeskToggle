@@ -509,16 +509,9 @@ internal static class Win32
     [DllImport("gdi32.dll")]
     public static extern IntPtr CreateSolidBrush(uint color);
 
-    [DllImport("gdi32.dll", CharSet = CharSet.Unicode)]
-    public static extern int GetTextFaceW(IntPtr hdc, int nCount, [Out] char[] lpFaceName);
-
     // ---- dwmapi ----
     [DllImport("dwmapi.dll")]
     public static extern int DwmSetWindowAttribute(IntPtr hwnd, int dwAttribute, ref int pvAttribute, int cbAttribute);
-
-    [DllImport("dwmapi.dll")]
-    public static extern int DwmGetColorizationColor(out uint pcrColorization,
-                                                     [MarshalAs(UnmanagedType.Bool)] out bool pfOpaqueBlend);
 
     // ---- shcore ----
     [DllImport("shcore.dll")]

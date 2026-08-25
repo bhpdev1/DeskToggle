@@ -12,7 +12,7 @@ namespace DesktopIconsToggle;
 internal static class IconPalette
 {
     /// <summary>Alpha applied to the neutral, inactive icon. 0-255.</summary>
-    public const byte InactiveAlpha = 115; // ~45 %
+    public const byte InactiveAlpha = 95; // ~37 %
 
     /// <summary>Luminance an icon must reach on a dark background.</summary>
     public const int DarkTargetLuminance = 150;

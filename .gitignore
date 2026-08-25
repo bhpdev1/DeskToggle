@@ -3,3 +3,5 @@ obj/
 *.user
 .superpowers/
 dist/
+tools/lucide/sheet.png
+tools/lucide/sheet.html
