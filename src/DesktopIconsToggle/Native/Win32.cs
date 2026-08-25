@@ -12,6 +12,7 @@ internal static class Win32
     public const int WM_ENDSESSION   = 0x0016;
     public const int WM_COMMAND      = 0x0111;
     public const int WM_TIMER        = 0x0113;
+    public const int WM_HOTKEY       = 0x0312;
     public const int WM_LBUTTONUP    = 0x0202;
     public const int WM_RBUTTONUP    = 0x0205;
 
@@ -48,8 +49,41 @@ internal static class Win32
     public const uint TPM_RIGHTBUTTON = 0x0002;
     public const uint TPM_RETURNCMD   = 0x0100;
 
+    // ---- hotkeys ----
+    public const uint MOD_ALT      = 0x0001;
+    public const uint MOD_CONTROL  = 0x0002;
+    public const uint MOD_SHIFT    = 0x0004;
+    public const uint MOD_WIN      = 0x0008;
+    public const uint MOD_NOREPEAT = 0x4000;
+
+    // ---- appbar ----
+    public const uint ABM_GETSTATE     = 0x00000004;
+    public const uint ABM_SETSTATE     = 0x0000000A;
+    public const int  ABS_AUTOHIDE     = 0x0000001;
+    public const int  ABS_ALWAYSONTOP  = 0x0000002;
+
     [StructLayout(LayoutKind.Sequential)]
     public struct POINT { public int X; public int Y; }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct RECT
+    {
+        public int Left;
+        public int Top;
+        public int Right;
+        public int Bottom;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct APPBARDATA
+    {
+        public uint   cbSize;
+        public IntPtr hWnd;
+        public uint   uCallbackMessage;
+        public uint   uEdge;
+        public RECT   rc;
+        public IntPtr lParam;
+    }
 
     [StructLayout(LayoutKind.Sequential)]
     public struct MSG
@@ -204,10 +238,21 @@ internal static class Win32
     [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool KillTimer(IntPtr hWnd, nuint uIDEvent);
 
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool UnregisterHotKey(IntPtr hWnd, int id);
+
     // ---- shell32 ----
     [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool Shell_NotifyIconW(int dwMessage, ref NOTIFYICONDATAW lpData);
+
+    [DllImport("shell32.dll", SetLastError = true)]
+    public static extern IntPtr SHAppBarMessage(uint dwMessage, ref APPBARDATA pData);
 
     // ---- kernel32 ----
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
