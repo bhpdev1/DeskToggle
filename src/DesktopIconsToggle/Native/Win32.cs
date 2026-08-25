@@ -45,6 +45,8 @@ internal static class Win32
     public const int  SM_CXSCREEN      = 0;
     public const int  SM_CYSCREEN      = 1;
     public const int  DEFAULT_GUI_FONT = 17;
+    public const int  COLOR_BTNFACE    = 15;
+    public const int  IDC_ARROW        = 32512;
 
     // ---- tray ----
     public const int  NIM_ADD        = 0x00000000;
@@ -75,6 +77,7 @@ internal static class Win32
     public const uint VK_ESCAPE    = 0x1B;
     public const uint VK_LWIN      = 0x5B;
     public const uint VK_RWIN      = 0x5C;
+    public const uint VK_F4        = 0x73;
 
     // ---- appbar ----
     public const uint ABM_GETSTATE     = 0x00000004;
@@ -199,6 +202,9 @@ internal static class Win32
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     public static extern IntPtr DefWindowProcW(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    public static extern IntPtr LoadCursorW(IntPtr hInstance, IntPtr lpCursorName);
 
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]

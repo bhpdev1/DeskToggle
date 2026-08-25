@@ -132,7 +132,9 @@ internal static class Program
                 _tray?.ShowMenu(new TrayMenuState(
                     IconToggler.AreIconsVisible(),
                     _settings!.HideTaskbar,
-                    HotkeyFormatter.Format(_hotKey!.Modifiers, _hotKey.VirtualKey),
+                    _hotKey!.IsRegistered
+                        ? HotkeyFormatter.Format(_hotKey.Modifiers, _hotKey.VirtualKey)
+                        : "aucun",
                     _autostart?.IsEnabled() ?? false));
             }
 
@@ -288,9 +290,12 @@ internal static class Program
             return;
         }
 
-        // Cancelled, or the combination stopped being available between the dialog's
-        // test and now: put the previous one back rather than leaving none at all.
-        _hotKey.Register(previousModifiers, previousVirtualKey);
+        // Cancelled, or the combination stopped being available between the dialog's test
+        // and now: put the previous one back rather than leaving none at all.
+        if (!_hotKey.Register(previousModifiers, previousVirtualKey))
+        {
+            _tray?.UpdateTooltip("Icônes du Bureau — raccourci clavier indisponible");
+        }
     }
 
     private static void RefreshTooltip()

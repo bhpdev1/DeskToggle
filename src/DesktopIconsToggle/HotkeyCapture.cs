@@ -36,6 +36,17 @@ internal static class HotkeyCapture
     /// </summary>
     public static bool TryCapture(IntPtr owner, out uint modifiers, out uint virtualKey)
     {
+        if (s_hwnd != IntPtr.Zero)
+        {
+            // The nested loop below keeps the tray path live, so the menu can re-enter
+            // here. A second window would orphan the first: the close handler acts on
+            // this static handle and would no longer reach it.
+            Win32.SetForegroundWindow(s_hwnd);
+            modifiers = 0;
+            virtualKey = 0;
+            return false;
+        }
+
         s_accepted = false;
         s_resultModifiers = 0;
         s_resultVirtualKey = 0;
@@ -100,6 +111,8 @@ internal static class HotkeyCapture
                 lpfnWndProc = Marshal.GetFunctionPointerForDelegate(s_wndProc),
                 hInstance = Win32.GetModuleHandleW(null),
                 lpszClassName = classNamePtr,
+                hbrBackground = new IntPtr(Win32.COLOR_BTNFACE + 1),
+                hCursor = Win32.LoadCursorW(IntPtr.Zero, new IntPtr(Win32.IDC_ARROW)),
             };
 
             if (Win32.RegisterClassExW(ref wc) == 0)
@@ -210,6 +223,16 @@ internal static class HotkeyCapture
         }
 
         if (vk == Win32.VK_ESCAPE && mods == 0)
+        {
+            CloseWindow(accepted: false);
+            return;
+        }
+
+        // Alt+F4 means "close this window" everywhere in Windows. RegisterHotKey would
+        // grant it (it is not system-reserved), and the app would then swallow it
+        // system-wide, breaking window closing across the whole session. Treat it as a
+        // cancel instead — the same path bare Escape uses.
+        if (vk == Win32.VK_F4 && mods == Win32.MOD_ALT)
         {
             CloseWindow(accepted: false);
             return;

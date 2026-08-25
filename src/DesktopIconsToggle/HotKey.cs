@@ -3,7 +3,9 @@ using DesktopIconsToggle.Native;
 namespace DesktopIconsToggle;
 
 /// <summary>
-/// Owns a single global hotkey registration on a message-only window.
+/// Owns a single global hotkey registration on the app's top-level window. It must be a
+/// real top-level window, not a message-only one (HWND_MESSAGE): RegisterHotKey does not
+/// work with message-only windows.
 /// No threads, no timers: WM_HOTKEY arrives on the window's own message loop.
 /// </summary>
 internal sealed class HotKey : IDisposable
