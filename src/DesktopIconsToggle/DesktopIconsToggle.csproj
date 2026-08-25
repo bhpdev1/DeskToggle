@@ -1,0 +1,54 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <PublishAot>true</PublishAot>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <ApplicationIcon>app.ico</ApplicationIcon>
+    <AssemblyName>DesktopIconsToggle</AssemblyName>
+    <RootNamespace>DesktopIconsToggle</RootNamespace>
+  </PropertyGroup>
+
+  <!--
+    Identité du binaire, visible dans Propriétés → Détails de l'explorateur. Un exe
+    sans identité est plus volontiers signalé par les heuristiques antivirus, et
+    celui-ci coche déjà plusieurs cases : raccourci clavier global et écriture dans
+    la clé Run. Cela ne remplace pas une signature de code, qui reste la seule chose
+    qui fasse taire SmartScreen.
+  -->
+  <PropertyGroup>
+    <Version>2.0.0</Version>
+    <FileVersion>2.0.0.0</FileVersion>
+    <AssemblyVersion>2.0.0.0</AssemblyVersion>
+    <Product>DesktopIconsToggle</Product>
+    <!-- AssemblyTitle alimente FileDescription, le libellé que montrent le
+         Gestionnaire des tâches et l'infobulle de l'explorateur. -->
+    <AssemblyTitle>Masque et affiche les icônes du bureau</AssemblyTitle>
+    <Description>Masque et affiche les icônes du bureau Windows, et la barre des tâches.</Description>
+    <Company>RBH</Company>
+    <Copyright>Copyright © 2026 RBH</Copyright>
+    <!-- Sans cela la version produit porte le hash du commit, qui n'a rien à faire
+         dans un binaire distribué. -->
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+  </PropertyGroup>
+
+  <!--
+    Pas de symboles en Release. Le .pdb NativeAOT pèse ~10 Mo et porte les noms de
+    toutes les classes et méthodes : le livrer à côté de l'exe annule l'essentiel de
+    ce que NativeAOT apporte face à l'analyse. Debug les conserve pour le diagnostic.
+  -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="DesktopIconsToggle.Tests" />
+  </ItemGroup>
+
+</Project>
