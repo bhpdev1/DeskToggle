@@ -17,6 +17,11 @@ démarrer avec la session et rester invisible et quasi gratuit en ressources.
 - Démarrage automatique à l'ouverture de session, activable/désactivable depuis
   l'application.
 - Empreinte cible : exe ≈ 1,5 Mo, RSS ≈ 5 Mo, 0 % CPU au repos.
+  **Mesuré (2026-08-25) :** exe 1 863 168 octets (1,78 Mo), jeu de travail au
+  repos 9,61 Mo, CPU 0 % au repos. La cible CPU est tenue — il n'y a ni timer
+  périodique ni polling nulle part. Les deux cibles de taille sont dépassées :
+  l'exe de ~19 %, la mémoire de ~90 %. Chiffres observés, non arrondis vers la
+  cible.
 
 ## 3. Non-objectifs
 
@@ -40,15 +45,27 @@ démarrer avec la session et rester invisible et quasi gratuit en ressources.
 
 ## 5. Architecture
 
-Un seul processus, un seul thread UI portant une fenêtre message-only et sa
-boucle de messages. Tous les composants publient vers ce thread ; aucun
-verrouillage n'est nécessaire.
+Un seul processus, un seul thread UI portant une fenêtre cachée et sa boucle de
+messages. Tous les composants publient vers ce thread ; aucun verrouillage n'est
+nécessaire.
+
+**Correction post-revue (2026-08-25).** Cette section imposait initialement une
+fenêtre *message-only* (`HWND_MESSAGE`). C'était incompatible avec trois
+exigences des sections 5.4 et 7 : une fenêtre message-only n'a pas de z-order,
+n'est pas énumérable et **ne reçoit aucun message de diffusion**. Elle ne peut
+donc ni recevoir `WM_ENDSESSION` (icônes perdues à la déconnexion), ni recevoir
+`TaskbarCreated` (icône jamais recréée après un redémarrage d'Explorer), ni
+servir de cible à `SetForegroundWindow` (menu qui refuse de se fermer). La
+fenêtre est désormais **top-level, cachée** : parent `IntPtr.Zero`, style étendu
+`WS_EX_TOOLWINDOW`, jamais affichée (ni `WS_VISIBLE`, ni `ShowWindow`), donc
+invisible à l'écran, dans la barre des tâches et dans Alt-Tab. Les exigences de
+comportement l'emportent sur le détail d'implémentation.
 
 ```
 DesktopIconsToggle/
 ├── DesktopIconsToggle.csproj
 ├── Program.cs           point d'entrée, câblage des composants, arrêt propre
-├── AppWindow.cs         fenêtre message-only, WndProc, boucle de messages
+├── AppWindow.cs         fenêtre top-level cachée, WndProc, boucle de messages
 ├── Native/Win32.cs      P/Invoke : user32, shell32, advapi32, kernel32
 ├── IconToggler.cs       localisation de SHELLDLL_DefView, toggle, lecture d'état
 ├── DesktopWatcher.cs    WinEvent hook, événement DesktopForegroundChanged
@@ -136,7 +153,7 @@ déplacé, la valeur est réécrite au prochain basculement.
 ### 5.6 `Program`
 
 1. Mutex nommé `Local\DesktopIconsToggle` ; sortie immédiate si déjà lancé.
-2. Création de la fenêtre message-only (`HWND_MESSAGE`).
+2. Création de la fenêtre top-level cachée (`WS_EX_TOOLWINDOW`, jamais affichée).
 3. Initialisation de `IconToggler`, `DesktopWatcher`, `MouseHook`, `TrayIcon`.
 4. `GetMessage` / `DispatchMessage`.
 5. À l'arrêt : `IconToggler.EnsureVisible()`, `NIM_DELETE`, désinstallation des
