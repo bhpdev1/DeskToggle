@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using DesktopIconsToggle.Native;
 
 namespace DesktopIconsToggle;
@@ -86,6 +87,16 @@ internal static class Program
         taskbar.CaptureOriginalState();
 
         _taskbarCreatedMessage = Win32.RegisterWindowMessageW("TaskbarCreated");
+
+        // The manifest declares comctl32 v6, which switches every standard control (the
+        // hotkey dialog's buttons among them) to the current visual style instead of the
+        // pre-XP default. This call is what actually initialises that version.
+        var initControls = new Win32.INITCOMMONCONTROLSEX
+        {
+            dwSize = (uint)Marshal.SizeOf<Win32.INITCOMMONCONTROLSEX>(),
+            dwICC = Win32.ICC_STANDARD_CLASSES,
+        };
+        Win32.InitCommonControlsEx(ref initControls);
 
         var window = new AppWindow();
         _window = window;

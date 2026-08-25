@@ -10,6 +10,7 @@
     <PublishAot>true</PublishAot>
     <InvariantGlobalization>true</InvariantGlobalization>
     <ApplicationIcon>app.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
     <AssemblyName>DesktopIconsToggle</AssemblyName>
     <RootNamespace>DesktopIconsToggle</RootNamespace>
   </PropertyGroup>

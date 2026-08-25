@@ -18,6 +18,8 @@ internal static class Win32
     public const int WM_KEYDOWN      = 0x0100;
     public const int WM_SYSKEYDOWN   = 0x0104;
     public const int WM_SETFONT      = 0x0030;
+    public const int WM_ERASEBKGND   = 0x0014;
+    public const int WM_CTLCOLORSTATIC = 0x0138;
 
     public const int WM_APP          = 0x8000;
     public const int WM_APP_TRAY     = WM_APP + 2;
@@ -54,6 +56,17 @@ internal static class Win32
     public const uint DT_CENTER        = 0x00000001;
     public const uint DT_VCENTER       = 0x00000004;
     public const uint DT_SINGLELINE    = 0x00000020;
+    public const uint MONITOR_DEFAULTTONEAREST = 2;
+    public const uint BS_PUSHBUTTON    = 0;
+    public const int  SW_HIDE          = 0;
+
+    // ---- comctl32 ----
+    public const uint ICC_STANDARD_CLASSES = 0x00004000;
+
+    // ---- dwm ----
+    public const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
+    public const int DWMWA_WINDOW_CORNER_PREFERENCE = 33;
+    public const int DWMWCP_ROUND = 2;
 
     // ---- tray ----
     public const int  NIM_ADD        = 0x00000000;
@@ -79,6 +92,7 @@ internal static class Win32
     public const uint MOD_NOREPEAT = 0x4000;
 
     // ---- virtual keys ----
+    public const uint VK_RETURN    = 0x0D;
     public const uint VK_SHIFT     = 0x10;
     public const uint VK_CONTROL   = 0x11;
     public const uint VK_MENU      = 0x12;
@@ -103,6 +117,22 @@ internal static class Win32
         public int Top;
         public int Right;
         public int Bottom;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct MONITORINFO
+    {
+        public uint cbSize;
+        public RECT rcMonitor;
+        public RECT rcWork;
+        public uint dwFlags;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct INITCOMMONCONTROLSEX
+    {
+        public uint dwSize;
+        public uint dwICC;
     }
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
@@ -382,6 +412,17 @@ internal static class Win32
                                                ref MENUITEMINFOW lpmii);
 
     [DllImport("user32.dll")]
+    public static extern IntPtr MonitorFromPoint(POINT pt, uint dwFlags);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool GetMonitorInfoW(IntPtr hMonitor, ref MONITORINFO lpmi);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool GetClientRect(IntPtr hWnd, out RECT lpRect);
+
+    [DllImport("user32.dll")]
     public static extern uint GetSysColor(int nIndex);
 
     [DllImport("user32.dll")]
@@ -429,8 +470,23 @@ internal static class Win32
     [DllImport("gdi32.dll")]
     public static extern uint SetTextColor(IntPtr hdc, uint color);
 
+    [DllImport("gdi32.dll")]
+    public static extern uint SetBkColor(IntPtr hdc, uint color);
+
+    [DllImport("gdi32.dll")]
+    public static extern IntPtr CreateSolidBrush(uint color);
+
     [DllImport("gdi32.dll", CharSet = CharSet.Unicode)]
     public static extern int GetTextFaceW(IntPtr hdc, int nCount, [Out] char[] lpFaceName);
+
+    // ---- dwmapi ----
+    [DllImport("dwmapi.dll")]
+    public static extern int DwmSetWindowAttribute(IntPtr hwnd, int dwAttribute, ref int pvAttribute, int cbAttribute);
+
+    // ---- comctl32 ----
+    [DllImport("comctl32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool InitCommonControlsEx(ref INITCOMMONCONTROLSEX icce);
 
     // ---- shell32 ----
     [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
