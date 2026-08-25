@@ -3,11 +3,19 @@ using DesktopIconsToggle.Native;
 
 namespace DesktopIconsToggle;
 
+internal readonly record struct TrayMenuState(
+    bool IconsVisible,
+    bool HideTaskbar,
+    string HotkeyLabel,
+    bool AutostartEnabled);
+
 internal sealed class TrayIcon : IDisposable
 {
-    public const int CmdToggle    = 1;
-    public const int CmdAutostart = 2;
-    public const int CmdQuit      = 3;
+    public const int CmdToggle       = 1;
+    public const int CmdAutostart    = 2;
+    public const int CmdQuit         = 3;
+    public const int CmdHideTaskbar  = 4;
+    public const int CmdChangeHotkey = 5;
 
     private const uint IconId = 1;
 
@@ -71,7 +79,7 @@ internal sealed class TrayIcon : IDisposable
         }
     }
 
-    public void ShowMenu(bool iconsVisible, bool autostartEnabled)
+    public void ShowMenu(TrayMenuState state)
     {
         IntPtr menu = Win32.CreatePopupMenu();
         if (menu == IntPtr.Zero)
@@ -82,8 +90,13 @@ internal sealed class TrayIcon : IDisposable
         try
         {
             Win32.AppendMenuW(menu, Win32.MF_STRING, new UIntPtr(CmdToggle),
-                              iconsVisible ? "Masquer les icônes" : "Afficher les icônes");
-            Win32.AppendMenuW(menu, Win32.MF_STRING | (autostartEnabled ? Win32.MF_CHECKED : 0),
+                              state.IconsVisible ? "Masquer les icônes" : "Afficher les icônes");
+            Win32.AppendMenuW(menu, Win32.MF_SEPARATOR, UIntPtr.Zero, null);
+            Win32.AppendMenuW(menu, Win32.MF_STRING | (state.HideTaskbar ? Win32.MF_CHECKED : 0),
+                              new UIntPtr(CmdHideTaskbar), "Masquer aussi la barre des tâches");
+            Win32.AppendMenuW(menu, Win32.MF_STRING, new UIntPtr(CmdChangeHotkey),
+                              $"Raccourci : {state.HotkeyLabel}…");
+            Win32.AppendMenuW(menu, Win32.MF_STRING | (state.AutostartEnabled ? Win32.MF_CHECKED : 0),
                               new UIntPtr(CmdAutostart), "Démarrage automatique");
             Win32.AppendMenuW(menu, Win32.MF_SEPARATOR, UIntPtr.Zero, null);
             Win32.AppendMenuW(menu, Win32.MF_STRING, new UIntPtr(CmdQuit), "Quitter");
