@@ -35,6 +35,28 @@ internal static class Program
             return 0;
         }
 
+        if (args.Length > 0 && args[0] == "--hook")
+        {
+            using var hook = new MouseHook(IntPtr.Zero);
+            hook.Trace += overDesktop =>
+                Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] middle double-click, over desktop = {overDesktop}");
+
+            if (!hook.Install())
+            {
+                Console.WriteLine("SetWindowsHookEx failed");
+                return 1;
+            }
+
+            Console.WriteLine("Middle double-click on the desktop, then elsewhere. Ctrl+C to stop.");
+            while (Native.Win32.GetMessageW(out var msg, IntPtr.Zero, 0, 0) > 0)
+            {
+                Native.Win32.TranslateMessage(ref msg);
+                Native.Win32.DispatchMessageW(ref msg);
+            }
+
+            return 0;
+        }
+
         Console.WriteLine("DesktopIconsToggle scaffold OK");
         return 0;
     }
