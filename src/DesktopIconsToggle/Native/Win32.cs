@@ -46,8 +46,14 @@ internal static class Win32
     public const int  SM_CYSCREEN      = 1;
     public const int  DEFAULT_GUI_FONT = 17;
     public const int  COLOR_BTNFACE    = 15;
+    public const int  COLOR_MENU       = 4;
+    public const int  COLOR_MENUTEXT   = 7;
     public const int  IDC_ARROW        = 32512;
     public const uint SPI_GETNONCLIENTMETRICS = 0x0029;
+    public const int  TRANSPARENT      = 1;
+    public const uint DT_CENTER        = 0x00000001;
+    public const uint DT_VCENTER       = 0x00000004;
+    public const uint DT_SINGLELINE    = 0x00000020;
 
     // ---- tray ----
     public const int  NIM_ADD        = 0x00000000;
@@ -63,6 +69,7 @@ internal static class Win32
     public const uint MF_CHECKED      = 0x00000008;
     public const uint TPM_RIGHTBUTTON = 0x0002;
     public const uint TPM_RETURNCMD   = 0x0100;
+    public const uint MIIM_BITMAP     = 0x00000080;
 
     // ---- hotkeys ----
     public const uint MOD_ALT      = 0x0001;
@@ -137,6 +144,23 @@ internal static class Win32
         public LOGFONTW lfStatusFont;
         public LOGFONTW lfMessageFont;
         public int     iPaddedBorderWidth;
+    }
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    public struct MENUITEMINFOW
+    {
+        public uint   cbSize;
+        public uint   fMask;
+        public uint   fType;
+        public uint   fState;
+        public uint   wID;
+        public IntPtr hSubMenu;
+        public IntPtr hbmpChecked;
+        public IntPtr hbmpUnchecked;
+        public IntPtr dwItemData;
+        public IntPtr dwTypeData;
+        public uint   cch;
+        public IntPtr hbmpItem;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -351,6 +375,30 @@ internal static class Win32
     [DllImport("user32.dll")]
     public static extern uint GetDpiForSystem();
 
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool SetMenuItemInfoW(IntPtr hMenu, uint uItem,
+                                               [MarshalAs(UnmanagedType.Bool)] bool fByPosition,
+                                               ref MENUITEMINFOW lpmii);
+
+    [DllImport("user32.dll")]
+    public static extern uint GetSysColor(int nIndex);
+
+    [DllImport("user32.dll")]
+    public static extern IntPtr GetSysColorBrush(int nIndex);
+
+    [DllImport("user32.dll")]
+    public static extern IntPtr GetDC(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    public static extern int ReleaseDC(IntPtr hWnd, IntPtr hDC);
+
+    [DllImport("user32.dll")]
+    public static extern int FillRect(IntPtr hDC, ref RECT lprc, IntPtr hbr);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    public static extern int DrawTextW(IntPtr hDC, string lpchText, int cchText, ref RECT lprc, uint uFormat);
+
     // ---- gdi32 ----
     [DllImport("gdi32.dll")]
     public static extern IntPtr GetStockObject(int fnObject);
@@ -361,6 +409,28 @@ internal static class Win32
     [DllImport("gdi32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool DeleteObject(IntPtr hObject);
+
+    [DllImport("gdi32.dll")]
+    public static extern IntPtr CreateCompatibleDC(IntPtr hdc);
+
+    [DllImport("gdi32.dll")]
+    public static extern IntPtr CreateCompatibleBitmap(IntPtr hdc, int cx, int cy);
+
+    [DllImport("gdi32.dll")]
+    public static extern IntPtr SelectObject(IntPtr hdc, IntPtr hgdiobj);
+
+    [DllImport("gdi32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool DeleteDC(IntPtr hdc);
+
+    [DllImport("gdi32.dll")]
+    public static extern int SetBkMode(IntPtr hdc, int mode);
+
+    [DllImport("gdi32.dll")]
+    public static extern uint SetTextColor(IntPtr hdc, uint color);
+
+    [DllImport("gdi32.dll", CharSet = CharSet.Unicode)]
+    public static extern int GetTextFaceW(IntPtr hdc, int nCount, [Out] char[] lpFaceName);
 
     // ---- shell32 ----
     [DllImport("shell32.dll", CharSet = CharSet.Unicode)]

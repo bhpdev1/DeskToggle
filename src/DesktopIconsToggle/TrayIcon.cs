@@ -19,7 +19,17 @@ internal sealed class TrayIcon : IDisposable
 
     private const uint IconId = 1;
 
+    // Segoe MDL2 Assets codepoints (also present in Segoe Fluent Icons). Written as
+    // numeric casts, not \u escapes, so the private-use-area glyphs cannot be mangled by
+    // source file encoding round-trips.
+    private const char GlyphEye       = (char)0xE7B3; // Afficher / Masquer les icônes
+    private const char GlyphTaskbar   = (char)0xE7F4; // Masquer aussi la barre des tâches
+    private const char GlyphKeyboard  = (char)0xE765; // Raccourci : …
+    private const char GlyphAutostart = (char)0xE7E8; // Démarrage automatique
+    private const char GlyphQuit      = (char)0xE711; // Quitter
+
     private Win32.NOTIFYICONDATAW _data;
+    private readonly MenuIcons _menuIcons;
     private bool _visible;
 
     public TrayIcon(IntPtr ownerWindow)
@@ -28,6 +38,8 @@ internal sealed class TrayIcon : IDisposable
                                         new IntPtr(Win32.IDI_APPLICATION),
                                         Win32.IMAGE_ICON, 0, 0,
                                         Win32.LR_DEFAULTSIZE | Win32.LR_SHARED);
+
+        _menuIcons = new MenuIcons((int)Win32.GetDpiForWindow(ownerWindow));
 
         _data = new Win32.NOTIFYICONDATAW
         {
@@ -91,15 +103,26 @@ internal sealed class TrayIcon : IDisposable
         {
             Win32.AppendMenuW(menu, Win32.MF_STRING, new UIntPtr(CmdToggle),
                               state.IconsVisible ? "Masquer les icônes" : "Afficher les icônes");
+            SetItemIcon(menu, CmdToggle, GlyphEye);
+
             Win32.AppendMenuW(menu, Win32.MF_SEPARATOR, UIntPtr.Zero, null);
+
             Win32.AppendMenuW(menu, Win32.MF_STRING | (state.HideTaskbar ? Win32.MF_CHECKED : 0),
                               new UIntPtr(CmdHideTaskbar), "Masquer aussi la barre des tâches");
+            SetItemIcon(menu, CmdHideTaskbar, GlyphTaskbar);
+
             Win32.AppendMenuW(menu, Win32.MF_STRING, new UIntPtr(CmdChangeHotkey),
                               $"Raccourci : {state.HotkeyLabel}…");
+            SetItemIcon(menu, CmdChangeHotkey, GlyphKeyboard);
+
             Win32.AppendMenuW(menu, Win32.MF_STRING | (state.AutostartEnabled ? Win32.MF_CHECKED : 0),
                               new UIntPtr(CmdAutostart), "Démarrage automatique");
+            SetItemIcon(menu, CmdAutostart, GlyphAutostart);
+
             Win32.AppendMenuW(menu, Win32.MF_SEPARATOR, UIntPtr.Zero, null);
+
             Win32.AppendMenuW(menu, Win32.MF_STRING, new UIntPtr(CmdQuit), "Quitter");
+            SetItemIcon(menu, CmdQuit, GlyphQuit);
 
             Win32.GetCursorPos(out var cursor);
             // Required so the menu closes when the user clicks elsewhere.
@@ -123,5 +146,32 @@ internal sealed class TrayIcon : IDisposable
         }
     }
 
-    public void Dispose() => SetVisible(false);
+    /// <summary>
+    /// Attaches the cached glyph bitmap to a menu item. A no-op when the icon font is
+    /// unavailable (<see cref="MenuIcons.Get"/> returns <see cref="IntPtr.Zero"/>) so the
+    /// item degrades to text-only rather than showing an empty gutter.
+    /// </summary>
+    private void SetItemIcon(IntPtr menu, int commandId, char glyph)
+    {
+        IntPtr bitmap = _menuIcons.Get(glyph);
+        if (bitmap == IntPtr.Zero)
+        {
+            return;
+        }
+
+        var info = new Win32.MENUITEMINFOW
+        {
+            cbSize = (uint)Marshal.SizeOf<Win32.MENUITEMINFOW>(),
+            fMask = Win32.MIIM_BITMAP,
+            hbmpItem = bitmap,
+        };
+
+        Win32.SetMenuItemInfoW(menu, (uint)commandId, false, ref info);
+    }
+
+    public void Dispose()
+    {
+        SetVisible(false);
+        _menuIcons.Dispose();
+    }
 }

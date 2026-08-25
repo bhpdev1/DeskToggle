@@ -183,6 +183,14 @@ internal static class Program
             }
             else if (mouseMessage == Win32.WM_RBUTTONUP)
             {
+                // A transient holder at startup — another app launching, or a previous
+                // instance still exiting — would otherwise cost the hotkey for the whole
+                // session, with the dialog as the only way back. Retry when the user looks.
+                if (_hotKey is not null && !_hotKey.IsRegistered)
+                {
+                    _hotKey.Register(_settings!.HotkeyModifiers, _settings.HotkeyVirtualKey);
+                }
+
                 _tray?.ShowMenu(new TrayMenuState(
                     IconToggler.AreIconsVisible(),
                     _settings!.HideTaskbar,
