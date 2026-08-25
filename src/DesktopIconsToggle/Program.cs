@@ -7,6 +7,24 @@ internal static class Program
 {
     private const nuint TooltipTimerId = 1;
 
+    // Tried in order the first time the app runs, and whenever the user has not chosen a
+    // combination themselves. Win+Maj+D is unassigned by Windows — unlike Win+D (show
+    // desktop) and Win+Alt+D (date and time) — and the two Ctrl+Alt variants are not
+    // reservable by the system at all, so one of the three will be granted.
+    private static readonly (uint Modifiers, uint VirtualKey)[] HotkeyFallbacks =
+    [
+        (Win32.MOD_WIN | Win32.MOD_SHIFT, VirtualKeyD),
+        (Win32.MOD_CONTROL | Win32.MOD_ALT, VirtualKeyD),
+        (Win32.MOD_CONTROL | Win32.MOD_ALT | Win32.MOD_SHIFT, VirtualKeyD),
+    ];
+
+    private const uint VirtualKeyD = 0x44;
+
+    // Explorer needs ~150 ms to settle a posted toggle (see the reconciliation timer
+    // below); 300 ms leaves comfortable margin so a second press can never land while the
+    // first is still in flight.
+    private static readonly ToggleThrottle _toggleThrottle = new(300);
+
     private static AppWindow? _window;
     private static TrayIcon? _tray;
     private static DesktopWatcher? _watcher;
@@ -88,14 +106,7 @@ internal static class Program
         var hotKey = new HotKey(window.Handle);
         _hotKey = hotKey;
 
-        if (!hotKey.Register(settings.HotkeyModifiers, settings.HotkeyVirtualKey))
-        {
-            tray.UpdateTooltip("Icônes du Bureau — raccourci clavier indisponible");
-        }
-        else
-        {
-            RefreshTooltip();
-        }
+        RegisterStartupHotkey(hotKey, settings);
 
         AppDomain.CurrentDomain.ProcessExit += (_, _) => Shutdown();
 
@@ -103,6 +114,42 @@ internal static class Program
 
         Shutdown();
         return 0;
+    }
+
+    /// <summary>
+    /// Registers the hotkey for the very first message loop iteration. A combination the
+    /// user picked themselves (<see cref="Settings.HotkeyConfigured"/>) is registered as-is
+    /// and reported on failure, never silently swapped. Otherwise the fallback chain is
+    /// walked and the first combination Windows grants is persisted, so the tray menu
+    /// reflects what is actually active.
+    /// </summary>
+    private static void RegisterStartupHotkey(HotKey hotKey, Settings settings)
+    {
+        if (settings.HotkeyConfigured)
+        {
+            if (!hotKey.Register(settings.HotkeyModifiers, settings.HotkeyVirtualKey))
+            {
+                _tray?.UpdateTooltip("Icônes du Bureau — raccourci clavier indisponible");
+                return;
+            }
+
+            RefreshTooltip();
+            return;
+        }
+
+        foreach ((uint modifiers, uint virtualKey) in HotkeyFallbacks)
+        {
+            if (hotKey.Register(modifiers, virtualKey))
+            {
+                settings.HotkeyModifiers = modifiers;
+                settings.HotkeyVirtualKey = virtualKey;
+                settings.Save();
+                RefreshTooltip();
+                return;
+            }
+        }
+
+        _tray?.UpdateTooltip("Icônes du Bureau — raccourci clavier indisponible");
     }
 
     private static bool OnMessage(uint msg, IntPtr wParam, IntPtr lParam)
@@ -200,6 +247,14 @@ internal static class Program
 
     private static void ToggleAll()
     {
+        // Refuse before touching the marker, IconToggler or the taskbar: a press that
+        // arrives while the previous toggle is still settling must have no side effect
+        // at all, not merely a suppressed one.
+        if (!_toggleThrottle.ShouldAccept(Environment.TickCount64))
+        {
+            return;
+        }
+
         bool willHide = IconToggler.AreIconsVisible();
 
         // Claim them before posting. If we are killed between the post and the timer
@@ -285,6 +340,7 @@ internal static class Program
         {
             _settings!.HotkeyModifiers = modifiers;
             _settings.HotkeyVirtualKey = virtualKey;
+            _settings.HotkeyConfigured = true;
             _settings.Save();
             RefreshTooltip();
             return;

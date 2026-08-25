@@ -21,15 +21,17 @@ public class SettingsTests
         Assert.Equal(Settings.DefaultHotkeyVirtualKey, settings.HotkeyVirtualKey);
         Assert.Equal(Settings.DefaultHideTaskbar, settings.HideTaskbar);
         Assert.Equal(Settings.DefaultTaskbarHiddenByUs, settings.TaskbarHiddenByUs);
+        Assert.Equal(Settings.DefaultHotkeyConfigured, settings.HotkeyConfigured);
     }
 
     [Fact]
     public void DefaultsMatchDocumentedValues()
     {
-        Assert.Equal(0x0008u, Settings.DefaultHotkeyModifiers);
-        Assert.Equal(0x1Bu, Settings.DefaultHotkeyVirtualKey);
+        Assert.Equal(0x000Cu, Settings.DefaultHotkeyModifiers);
+        Assert.Equal(0x44u, Settings.DefaultHotkeyVirtualKey);
         Assert.False(Settings.DefaultHideTaskbar);
         Assert.False(Settings.DefaultTaskbarHiddenByUs);
+        Assert.False(Settings.DefaultHotkeyConfigured);
     }
 
     [Fact]
@@ -42,6 +44,7 @@ public class SettingsTests
             HotkeyVirtualKey = 0x41,
             HideTaskbar = true,
             TaskbarHiddenByUs = true,
+            HotkeyConfigured = true,
         };
         settings.Save();
 
@@ -52,6 +55,7 @@ public class SettingsTests
         Assert.Equal(0x41u, reloaded.HotkeyVirtualKey);
         Assert.True(reloaded.HideTaskbar);
         Assert.True(reloaded.TaskbarHiddenByUs);
+        Assert.True(reloaded.HotkeyConfigured);
     }
 
     [Fact]
@@ -118,6 +122,61 @@ public class SettingsTests
         var reloaded = new Settings(store);
         reloaded.Load();
         Assert.False(reloaded.IconsHiddenByUs);
+    }
+
+    [Fact]
+    public void HotkeyConfiguredTrueRoundTrips()
+    {
+        var store = new FakeStore();
+        new Settings(store) { HotkeyConfigured = true }.Save();
+
+        var reloaded = new Settings(store);
+        reloaded.Load();
+        Assert.True(reloaded.HotkeyConfigured);
+    }
+
+    [Fact]
+    public void HotkeyConfiguredFalseRoundTrips()
+    {
+        var store = new FakeStore();
+        new Settings(store) { HotkeyConfigured = false }.Save();
+
+        var reloaded = new Settings(store);
+        reloaded.Load();
+        Assert.False(reloaded.HotkeyConfigured);
+    }
+
+    [Fact]
+    public void HotkeyConfiguredDefaultsToFalseWhenAbsent()
+    {
+        var store = new FakeStore();
+        store.Write("HideTaskbar", "1");
+
+        var settings = new Settings(store);
+        settings.Load();
+
+        Assert.False(settings.HotkeyConfigured);
+        Assert.True(settings.HideTaskbar);
+    }
+
+    [Fact]
+    public void HotkeyConfiguredFallsBackOnGarbageWithoutDisturbingNeighbours()
+    {
+        var store = new FakeStore();
+        store.Write("HotkeyConfigured", "banane");
+        store.Write("HotkeyModifiers", "3");
+        store.Write("HotkeyVirtualKey", "65");
+        store.Write("HideTaskbar", "1");
+        store.Write("TaskbarHiddenByUs", "1");
+
+        var settings = new Settings(store);
+        settings.Load();
+
+        Assert.Equal(Settings.DefaultHotkeyConfigured, settings.HotkeyConfigured);
+        Assert.Equal(3u, settings.HotkeyModifiers);
+        Assert.Equal(65u, settings.HotkeyVirtualKey);
+        Assert.True(settings.HideTaskbar);
+        Assert.True(settings.TaskbarHiddenByUs);
     }
 
     [Fact]
@@ -210,7 +269,7 @@ public class SettingsTests
     }
 
     [Fact]
-    public void SaveWritesAllFourValueNames()
+    public void SaveWritesAllValueNames()
     {
         var store = new FakeStore();
         new Settings(store).Save();
@@ -219,6 +278,8 @@ public class SettingsTests
         Assert.True(store.Values.ContainsKey("HotkeyVirtualKey"));
         Assert.True(store.Values.ContainsKey("HideTaskbar"));
         Assert.True(store.Values.ContainsKey("TaskbarHiddenByUs"));
+        Assert.True(store.Values.ContainsKey("IconsHiddenByUs"));
+        Assert.True(store.Values.ContainsKey("HotkeyConfigured"));
     }
 
     [Fact]
