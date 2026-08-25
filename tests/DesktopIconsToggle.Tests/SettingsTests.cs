@@ -99,6 +99,53 @@ public class SettingsTests
     }
 
     [Fact]
+    public void IconsHiddenByUsTrueRoundTrips()
+    {
+        var store = new FakeStore();
+        new Settings(store) { IconsHiddenByUs = true }.Save();
+
+        var reloaded = new Settings(store);
+        reloaded.Load();
+        Assert.True(reloaded.IconsHiddenByUs);
+    }
+
+    [Fact]
+    public void IconsHiddenByUsFalseRoundTrips()
+    {
+        var store = new FakeStore();
+        new Settings(store) { IconsHiddenByUs = false }.Save();
+
+        var reloaded = new Settings(store);
+        reloaded.Load();
+        Assert.False(reloaded.IconsHiddenByUs);
+    }
+
+    [Fact]
+    public void IconsHiddenByUsDefaultsToFalseWhenAbsent()
+    {
+        var store = new FakeStore();
+        store.Write("HideTaskbar", "1");
+
+        var settings = new Settings(store);
+        settings.Load();
+
+        Assert.False(settings.IconsHiddenByUs);
+        Assert.True(settings.HideTaskbar);
+    }
+
+    [Fact]
+    public void IconsHiddenByUsFallsBackOnGarbage()
+    {
+        var store = new FakeStore();
+        store.Write("IconsHiddenByUs", "banane");
+
+        var settings = new Settings(store);
+        settings.Load();
+
+        Assert.Equal(Settings.DefaultIconsHiddenByUs, settings.IconsHiddenByUs);
+    }
+
+    [Fact]
     public void CorruptHotkeyModifiersFallsBackToDefaultWithoutBreakingNeighbours()
     {
         var store = new FakeStore();

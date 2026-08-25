@@ -32,6 +32,16 @@ internal static class Program
         settings.Load();
         _settings = settings;
 
+        // Crash recovery for the icons. The app clears this marker on every clean exit, so
+        // finding it set means the previous session was killed while they were hidden.
+        // Explorer persists that state, so nothing else would ever bring them back.
+        if (settings.IconsHiddenByUs)
+        {
+            IconToggler.EnsureVisible();
+            settings.IconsHiddenByUs = false;
+            settings.Save();
+        }
+
         _autostart = new Autostart(new RegistryValueStore(RegistryValueStore.RunSubKey), exePath);
 
         var taskbar = new TaskbarHider();
@@ -162,10 +172,10 @@ internal static class Program
 
             case TrayIcon.CmdHideTaskbar:
                 _settings!.HideTaskbar = !_settings.HideTaskbar;
-                _settings.Save();
                 // Apply immediately so the checkbox matches what the user sees, rather
                 // than only taking effect at the next toggle.
                 ApplyTaskbarState(_settings.HideTaskbar && !IconToggler.AreIconsVisible());
+                _settings.Save();
                 break;
 
             case TrayIcon.CmdChangeHotkey:
@@ -190,10 +200,17 @@ internal static class Program
             return;
         }
 
-        if (_settings!.HideTaskbar)
+        // Record that we are the ones hiding them. Explorer persists the hidden state on
+        // its own, so a session killed before Shutdown would otherwise leave the user with
+        // an empty desktop and nothing that ever puts it back.
+        _settings!.IconsHiddenByUs = willHide;
+
+        if (_settings.HideTaskbar)
         {
             ApplyTaskbarState(willHide);
         }
+
+        _settings.Save();
 
         // Explorer needs a moment before the window state reflects the posted toggle.
         // Sleeping here would stall the thread that services the low-level mouse hook,
@@ -211,8 +228,8 @@ internal static class Program
         _taskbar!.SetAutoHide(hidden || _taskbar.OriginalAutoHide);
 
         // Only claim responsibility when we actually changed it from their original.
+        // Persisting is the caller's job, so a single toggle writes the registry once.
         _settings!.TaskbarHiddenByUs = hidden && !_taskbar.OriginalAutoHide;
-        _settings.Save();
     }
 
     private static void ChangeHotkey()
@@ -262,6 +279,7 @@ internal static class Program
         if (_settings is not null)
         {
             _settings.TaskbarHiddenByUs = false;
+            _settings.IconsHiddenByUs = false;
             _settings.Save();
         }
 
