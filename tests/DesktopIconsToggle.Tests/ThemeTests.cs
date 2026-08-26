@@ -5,16 +5,19 @@ public class ThemeTests
     private sealed class FakeThemeSource : IThemeSource
     {
         public bool? Value;
+        public bool? SystemValue;
 
         public bool? IsLightTheme() => Value;
+        public bool? IsLightSystemTheme() => SystemValue;
     }
 
     [Fact]
     public void LightSourceGivesTheLightTripleAndIsNotDark()
     {
-        var theme = new Theme(new FakeThemeSource { Value = true });
+        var theme = new Theme(new FakeThemeSource { Value = true, SystemValue = true });
 
         Assert.False(theme.IsDark);
+        Assert.False(theme.IsSystemDark);
         Assert.Equal(Theme.LightBackground, theme.Background);
         Assert.Equal(Theme.LightText, theme.Text);
         Assert.Equal(Theme.LightSubtleText, theme.SubtleText);
@@ -23,9 +26,10 @@ public class ThemeTests
     [Fact]
     public void DarkSourceGivesTheDarkTripleAndIsDark()
     {
-        var theme = new Theme(new FakeThemeSource { Value = false });
+        var theme = new Theme(new FakeThemeSource { Value = false, SystemValue = false });
 
         Assert.True(theme.IsDark);
+        Assert.True(theme.IsSystemDark);
         Assert.Equal(Theme.DarkBackground, theme.Background);
         Assert.Equal(Theme.DarkText, theme.Text);
         Assert.Equal(Theme.DarkSubtleText, theme.SubtleText);
@@ -34,9 +38,10 @@ public class ThemeTests
     [Fact]
     public void UnreadablePreferenceFallsBackToLight()
     {
-        var theme = new Theme(new FakeThemeSource { Value = null });
+        var theme = new Theme(new FakeThemeSource { Value = null, SystemValue = null });
 
         Assert.False(theme.IsDark);
+        Assert.False(theme.IsSystemDark);
         Assert.Equal(Theme.LightBackground, theme.Background);
         Assert.Equal(Theme.LightText, theme.Text);
         Assert.Equal(Theme.LightSubtleText, theme.SubtleText);
@@ -45,7 +50,7 @@ public class ThemeTests
     [Fact]
     public void RefreshPicksUpAChangedPreference()
     {
-        var source = new FakeThemeSource { Value = true };
+        var source = new FakeThemeSource { Value = true, SystemValue = true };
         var theme = new Theme(source);
         Assert.False(theme.IsDark);
 
@@ -61,7 +66,7 @@ public class ThemeTests
     [Fact]
     public void RefreshCanFallBackToLightAfterBeingDark()
     {
-        var source = new FakeThemeSource { Value = false };
+        var source = new FakeThemeSource { Value = false, SystemValue = false };
         var theme = new Theme(source);
         Assert.True(theme.IsDark);
 
@@ -70,6 +75,52 @@ public class ThemeTests
 
         Assert.False(theme.IsDark);
         Assert.Equal(Theme.LightBackground, theme.Background);
+    }
+
+    // The system theme (taskbar/tray) and the app theme are independent Windows
+    // preferences and commonly disagree — this is exactly the combination
+    // IsSystemDark exists to expose correctly, in both directions.
+
+    [Fact]
+    public void SystemThemeCanBeDarkWhileAppThemeIsLight()
+    {
+        var theme = new Theme(new FakeThemeSource { Value = true, SystemValue = false });
+
+        Assert.False(theme.IsDark);
+        Assert.True(theme.IsSystemDark);
+    }
+
+    [Fact]
+    public void SystemThemeCanBeLightWhileAppThemeIsDark()
+    {
+        var theme = new Theme(new FakeThemeSource { Value = false, SystemValue = true });
+
+        Assert.True(theme.IsDark);
+        Assert.False(theme.IsSystemDark);
+    }
+
+    [Fact]
+    public void UnreadableSystemPreferenceFallsBackToLightIndependentlyOfAppPreference()
+    {
+        var theme = new Theme(new FakeThemeSource { Value = false, SystemValue = null });
+
+        Assert.True(theme.IsDark);
+        Assert.False(theme.IsSystemDark);
+    }
+
+    [Fact]
+    public void RefreshPicksUpAChangedSystemPreferenceWithoutTheAppPreferenceMoving()
+    {
+        var source = new FakeThemeSource { Value = true, SystemValue = true };
+        var theme = new Theme(source);
+        Assert.False(theme.IsDark);
+        Assert.False(theme.IsSystemDark);
+
+        source.SystemValue = false;
+        theme.Refresh();
+
+        Assert.False(theme.IsDark);
+        Assert.True(theme.IsSystemDark);
     }
 
     [Fact]

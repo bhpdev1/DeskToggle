@@ -222,7 +222,7 @@ docs/                              architecture docs and the French design spec
 
 ## Licence
 
-[MIT](LICENSE), Copyright (c) 2026 BH Enterprises.
+[MIT](LICENSE), Copyright (c) 2026 welcometothesale.
 
 Tray menu icons are derived from [Lucide](https://lucide.dev) (ISC
 licence) — see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
@@ -230,4 +230,4 @@ licence) — see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 ## Credits
 
 - Icons: [Lucide](https://lucide.dev).
-- Built by BH Enterprises.
+- Built by welcometothesale.

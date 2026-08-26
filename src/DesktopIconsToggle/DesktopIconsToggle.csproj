@@ -32,8 +32,8 @@
          Gestionnaire des tâches et l'infobulle de l'explorateur. -->
     <AssemblyTitle>Masque et affiche les icônes du bureau</AssemblyTitle>
     <Description>Masque et affiche les icônes du bureau Windows, et la barre des tâches.</Description>
-    <Company>BH Enterprises</Company>
-    <Copyright>Copyright © 2026 BH Enterprises</Copyright>
+    <Company>welcometothesale</Company>
+    <Copyright>Copyright © 2026 welcometothesale</Copyright>
     <!-- Sans cela la version produit porte le hash du commit, qui n'a rien à faire
          dans un binaire distribué. -->
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>

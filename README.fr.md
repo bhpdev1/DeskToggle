@@ -243,7 +243,7 @@ docs/                              documents d'architecture et spécification fr
 
 ## Licence
 
-[MIT](LICENSE), Copyright (c) 2026 BH Enterprises.
+[MIT](LICENSE), Copyright (c) 2026 welcometothesale.
 
 Les icônes du menu du tray sont dérivées de [Lucide](https://lucide.dev)
 (licence ISC) — voir [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
@@ -251,4 +251,4 @@ Les icônes du menu du tray sont dérivées de [Lucide](https://lucide.dev)
 ## Crédits
 
 - Icônes : [Lucide](https://lucide.dev).
-- Développé par BH Enterprises.
+- Développé par welcometothesale.

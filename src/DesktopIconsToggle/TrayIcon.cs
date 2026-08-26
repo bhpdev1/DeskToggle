@@ -21,7 +21,9 @@ internal sealed class TrayIcon : IDisposable
 
     private Win32.NOTIFYICONDATAW _data;
     private readonly MenuIcons _menuIcons;
+    private readonly TrayIconArt _art;
     private bool _visible;
+    private bool? _iconState;
 
     public TrayIcon(IntPtr ownerWindow)
     {
@@ -32,6 +34,7 @@ internal sealed class TrayIcon : IDisposable
 
         var theme = new Theme(new RegistryThemeSource());
         _menuIcons = new MenuIcons((int)Win32.GetDpiForWindow(ownerWindow), theme);
+        _art = new TrayIconArt(theme);
 
         _data = new Win32.NOTIFYICONDATAW
         {
@@ -55,7 +58,52 @@ internal sealed class TrayIcon : IDisposable
     /// switch changes what colour each icon is contrast-corrected to — without this, the
     /// bitmaps already cached under the old theme's colours would keep being reused.
     /// </summary>
-    public void OnSettingsChanged() => _menuIcons.Invalidate();
+    public void OnSettingsChanged()
+    {
+        // Invalidate() re-reads the theme (both the app and system preferences) before
+        // Refresh() below reads Theme.IsSystemDark off the same instance, so the tray
+        // icon's colour and the menu icons' contrast correction always agree on which
+        // theme flip just happened.
+        _menuIcons.Invalidate();
+        _art.Refresh();
+
+        if (_iconState.HasValue)
+        {
+            ApplyIcon(_iconState.Value);
+        }
+    }
+
+    /// <summary>
+    /// Selects the tray icon matching <paramref name="iconsVisible"/> and, when the icon is
+    /// currently shown, pushes it to the shell. Setting the same state twice is a no-op —
+    /// it must not issue a redundant <c>NIM_MODIFY</c> call.
+    /// </summary>
+    public void SetIconState(bool iconsVisible)
+    {
+        if (_iconState == iconsVisible)
+        {
+            return;
+        }
+
+        _iconState = iconsVisible;
+        ApplyIcon(iconsVisible);
+    }
+
+    /// <summary>
+    /// Writes the matching handle into <see cref="_data"/> unconditionally — so
+    /// <see cref="Readd"/> and <c>SetVisible(true)</c>, which both reuse <see cref="_data"/>
+    /// for <c>NIM_ADD</c>, always carry the current state's art even when the icon is not
+    /// currently shown — and issues <c>NIM_MODIFY</c> only when it is.
+    /// </summary>
+    private void ApplyIcon(bool iconsVisible)
+    {
+        _data.hIcon = iconsVisible ? _art.Visible : _art.Hidden;
+
+        if (_visible)
+        {
+            Win32.Shell_NotifyIconW(Win32.NIM_MODIFY, ref _data);
+        }
+    }
 
     public void SetVisible(bool visible)
     {
@@ -180,5 +228,6 @@ internal sealed class TrayIcon : IDisposable
     {
         SetVisible(false);
         _menuIcons.Dispose();
+        _art.Dispose();
     }
 }

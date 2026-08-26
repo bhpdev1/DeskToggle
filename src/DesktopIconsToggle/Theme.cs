@@ -6,23 +6,37 @@ internal interface IThemeSource
 {
     /// <summary>True for light, false for dark, null when the preference cannot be read.</summary>
     bool? IsLightTheme();
+
+    /// <summary>
+    /// True for light, false for dark, null when the preference cannot be read. This is
+    /// <c>SystemUsesLightTheme</c> — the taskbar, the Start menu, the notification area —
+    /// which Windows tracks independently of <see cref="IsLightTheme"/>'s
+    /// <c>AppsUseLightTheme</c>. A dark taskbar with light apps (or the reverse) is a
+    /// common, deliberate combination, not a misconfiguration.
+    /// </summary>
+    bool? IsLightSystemTheme();
 }
 
 /// <summary>
-/// Reads the light/dark app theme preference, a DWORD (not a string), so it cannot
-/// share <see cref="IRegistryValueStore"/>, which only ever returns strings.
+/// Reads the light/dark app and system theme preferences, both DWORDs (not strings), so
+/// this cannot share <see cref="IRegistryValueStore"/>, which only ever returns strings.
 /// </summary>
 internal sealed class RegistryThemeSource : IThemeSource
 {
     private const string SubKeyPath = @"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize";
-    private const string ValueName = "AppsUseLightTheme";
+    private const string AppsValueName = "AppsUseLightTheme";
+    private const string SystemValueName = "SystemUsesLightTheme";
 
-    public bool? IsLightTheme()
+    public bool? IsLightTheme() => ReadValue(AppsValueName);
+
+    public bool? IsLightSystemTheme() => ReadValue(SystemValueName);
+
+    private static bool? ReadValue(string valueName)
     {
         try
         {
             using var key = Registry.CurrentUser.OpenSubKey(SubKeyPath, writable: false);
-            return key?.GetValue(ValueName) is int value ? value != 0 : null;
+            return key?.GetValue(valueName) is int value ? value != 0 : null;
         }
         catch (Exception ex) when (ex is UnauthorizedAccessException or System.Security.SecurityException)
         {
@@ -51,16 +65,26 @@ internal sealed class Theme
     }
 
     public bool IsDark { get; private set; }
+
+    /// <summary>
+    /// The system theme — taskbar, Start menu, notification area — as opposed to
+    /// <see cref="IsDark"/>, which is the app theme. The two are set independently.
+    /// </summary>
+    public bool IsSystemDark { get; private set; }
+
     public uint Background { get; private set; }
     public uint Text { get; private set; }
     public uint SubtleText { get; private set; }
 
-    /// <summary>Re-reads the preference. Call when the app starts and when it may have changed.</summary>
+    /// <summary>Re-reads both preferences. Call when the app starts and when they may have changed.</summary>
     public void Refresh()
     {
         // An unreadable or missing preference means light, the safer default.
         bool isLight = _source.IsLightTheme() ?? true;
         IsDark = !isLight;
+
+        bool isSystemLight = _source.IsLightSystemTheme() ?? true;
+        IsSystemDark = !isSystemLight;
 
         Background = IsDark ? DarkBackground : LightBackground;
         Text = IsDark ? DarkText : LightText;

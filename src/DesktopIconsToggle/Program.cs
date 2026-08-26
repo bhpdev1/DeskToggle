@@ -109,6 +109,11 @@ internal static class Program
         _tray = tray;
         tray.CommandChosen += OnCommand;
 
+        // So the tray icon itself already shows the right state — a square with four
+        // dots, or empty — at the very first paint, rather than whatever placeholder art
+        // the constructor started with.
+        tray.SetIconState(IconToggler.AreIconsVisible());
+
         var watcher = new DesktopWatcher();
         _watcher = watcher;
         watcher.Changed += isDesktop => tray.SetVisible(isDesktop);
@@ -311,6 +316,10 @@ internal static class Program
             return;
         }
 
+        // Optimistic, immediate feedback; ReconcileWithDesktop corrects it once Explorer
+        // has actually settled.
+        _tray?.SetIconState(!willHide);
+
         // Apply the taskbar immediately so it tracks the icons without a visible lag.
         // The timer reconciles both against what Explorer actually settled on.
         if (_settings.HideTaskbar)
@@ -346,6 +355,7 @@ internal static class Program
 
         _settings.Save();
         RefreshTooltip();
+        _tray?.SetIconState(!iconsHidden);
     }
 
     private static void ApplyTaskbarState(bool hidden)

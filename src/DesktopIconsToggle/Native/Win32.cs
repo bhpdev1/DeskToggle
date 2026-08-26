@@ -48,6 +48,8 @@ internal static class Win32
     public const int  SW_SHOW          = 5;
     public const int  SM_CXSCREEN      = 0;
     public const int  SM_CYSCREEN      = 1;
+    public const int  SM_CXSMICON      = 49;
+    public const int  SM_CYSMICON      = 50;
     public const int  DEFAULT_GUI_FONT = 17;
     public const int  COLOR_MENU       = 4;
     public const int  COLOR_MENUTEXT   = 7;
@@ -217,6 +219,20 @@ internal static class Win32
         public uint   biClrImportant;
     }
 
+    /// <summary>
+    /// <c>fIcon</c> marshals as the default 4-byte Win32 BOOL for a <c>bool</c> struct
+    /// field, matching the native layout without needing an explicit MarshalAs.
+    /// </summary>
+    [StructLayout(LayoutKind.Sequential)]
+    public struct ICONINFO
+    {
+        public bool   fIcon;
+        public uint   xHotspot;
+        public uint   yHotspot;
+        public IntPtr hbmMask;
+        public IntPtr hbmColor;
+    }
+
     [StructLayout(LayoutKind.Sequential)]
     public struct APPBARDATA
     {
@@ -359,6 +375,13 @@ internal static class Win32
     public static extern IntPtr LoadImageW(IntPtr hInst, IntPtr name, uint type, int cx, int cy, uint fuLoad);
 
     [DllImport("user32.dll")]
+    public static extern IntPtr CreateIconIndirect(ref ICONINFO piconinfo);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool DestroyIcon(IntPtr hIcon);
+
+    [DllImport("user32.dll")]
     public static extern IntPtr CreatePopupMenu();
 
     [DllImport("user32.dll")]
@@ -485,6 +508,9 @@ internal static class Win32
 
     [DllImport("gdi32.dll")]
     public static extern IntPtr CreateCompatibleBitmap(IntPtr hdc, int cx, int cy);
+
+    [DllImport("gdi32.dll")]
+    public static extern IntPtr CreateBitmap(int nWidth, int nHeight, int nPlanes, int nBitCount, IntPtr lpvBits);
 
     [DllImport("gdi32.dll")]
     public static extern IntPtr CreateDIBSection(IntPtr hdc, ref BITMAPINFOHEADER pbmi, uint usage,
