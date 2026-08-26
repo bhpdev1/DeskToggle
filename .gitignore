@@ -5,3 +5,5 @@ obj/
 dist/
 tools/lucide/sheet.png
 tools/lucide/sheet.html
+tools/lucide/sheet-zoom.png
+tools/lucide/masks.txt
