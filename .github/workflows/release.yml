@@ -1,0 +1,53 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  release:
+    name: release
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build (warnings as errors)
+        run: dotnet build src/DesktopIconsToggle -c Release --no-restore /warnaserror
+
+      - name: Test
+        run: dotnet test tests/DesktopIconsToggle.Tests -c Release --no-restore
+
+      - name: Publish (self-contained, win-x64, NativeAOT)
+        run: dotnet publish src/DesktopIconsToggle -c Release -r win-x64 --no-restore
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: src/DesktopIconsToggle/bin/Release/net10.0-windows/win-x64/publish/DesktopIconsToggle.exe
+          body: |
+            ## DesktopIconsToggle ${{ github.ref_name }}
+
+            **Windows will warn you before you can run this.** The executable is
+            unsigned, so SmartScreen shows "Windows protected your PC" the first
+            time you run a copy downloaded from the internet. Click **More info**,
+            then **Run anyway**. This is expected — code signing is the only real
+            fix, and this project does not (yet) sign its releases. Copying the
+            executable via USB or a local network share carries no Mark of the Web
+            and shows no such warning.
+
+            See the [README](https://github.com/YOUR-GITHUB-USERNAME/desktop-icons-toggle#readme)
+            for usage, the [CHANGELOG](https://github.com/YOUR-GITHUB-USERNAME/desktop-icons-toggle/blob/main/CHANGELOG.md)
+            for what changed, and the known limitations before reporting an issue.

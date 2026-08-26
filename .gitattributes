@@ -1,0 +1,8 @@
+# Normalise line endings so every clone (and every commit) sees CRLF for this
+# Windows-only codebase, instead of Git's per-platform autocrlf guess printing
+# "LF will be replaced by CRLF" warnings on every commit.
+* text=auto eol=crlf
+
+# Binary assets: never touch, never diff as text.
+*.png binary
+*.ico binary

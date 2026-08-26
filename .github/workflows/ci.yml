@@ -1,0 +1,40 @@
+name: build
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  build:
+    name: build
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build (warnings as errors)
+        run: dotnet build src/DesktopIconsToggle -c Release --no-restore /warnaserror
+
+      - name: Test
+        run: dotnet test tests/DesktopIconsToggle.Tests -c Release --no-restore
+
+      - name: Publish (self-contained, win-x64, NativeAOT)
+        run: dotnet publish src/DesktopIconsToggle -c Release -r win-x64 --no-restore
+
+      - name: Upload executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: DesktopIconsToggle-win-x64
+          path: src/DesktopIconsToggle/bin/Release/net10.0-windows/win-x64/publish/DesktopIconsToggle.exe
+          if-no-files-found: error
