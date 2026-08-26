@@ -1,8 +1,8 @@
 # DesktopIconsToggle — Design
 
 **Date :** 2026-08-25
-**Statut :** implémenté. Révisé après la V2 (raccourci clavier, barre des tâches,
-retrait du hook souris).
+**Statut :** implémenté. Révisé après la V2.1 (raccourci clavier, barre des tâches,
+retrait du hook souris, refonte visuelle et icônes Lucide).
 
 ## 1. Problème
 
@@ -91,8 +91,23 @@ DesktopIconsToggle/
 ├── Settings.cs          persistance registre, marqueurs de récupération
 ├── TrayIcon.cs          Shell_NotifyIcon, menu contextuel, TaskbarCreated
 ├── Autostart.cs         IRegistryValueStore, RegistryValueStore, clé Run
+├── DialogLayout.cs      géométrie de la boîte de capture (sans Win32, testable)
+├── Theme.cs             détection clair/sombre et couleurs (testable)
+├── IconPalette.cs       correction de contraste des couleurs (sans Win32, testable)
+├── SystemFont.cs        police système à l'échelle du DPI
+├── MenuIcons.cs         rendu des icônes en DIB alpha prémultiplié
+├── LucideIcons.g.cs     masques alpha Lucide, généré — ne pas éditer
+├── app.manifest         DPI par moniteur + comctl32 v6
 └── app.ico
 ```
+
+**Couche visuelle (V2.1).** Les cinq derniers fichiers forment l'habillage :
+`DialogLayout` calcule la géométrie depuis la taille **client** et le DPI du
+moniteur visé, `Theme` lit la préférence clair/sombre, `IconPalette` garantit
+qu'une couleur reste lisible sur le fond du menu, `SystemFont` résout la police
+des boîtes de dialogue du système, et `MenuIcons` peint les masques Lucide en
+DIB 32 bits à alpha prémultiplié. Aucune police d'icônes n'est sollicitée à
+l'exécution, et aucun décodeur d'image n'est nécessaire.
 
 ### 5.1 `IconToggler`
 
@@ -294,7 +309,7 @@ le rétablir.
 
 ## 8. Tests
 
-66 tests unitaires (xUnit, projet séparé exclu de la publication AOT). Tout ce qui
+179 tests unitaires (xUnit, projet séparé exclu de la publication AOT). Tout ce qui
 peut être extrait de l'interopérabilité Win32 l'est, précisément pour être testé :
 
 - `HotkeyFormatter` — libellés et ordre des modificateurs, accents compris.
@@ -304,6 +319,12 @@ peut être extrait de l'interopérabilité Win32 l'est, précisément pour être
   garantie : un utilisateur déjà en auto-masquage le conserve et n'est jamais
   revendiqué.
 - `TaskbarHider.ApplyAutoHide` — préservation de `ABS_ALWAYSONTOP` dans les deux sens.
+- `ToggleThrottle` — anti-rebond sur horloge injectée.
+- `DialogLayout` — marges égales des deux côtés, empilement, mise à l'échelle DPI,
+  et les boutons dégagent la ligne de statut une fois le chrome de fenêtre déduit.
+- `Theme` — clair, sombre, et repli sur clair quand la préférence est illisible.
+- `IconPalette` — luminance, et correction de contraste **préservant la teinte**.
+- `SystemFont.ScaledHeight` — convention de hauteur négative et mise à l'échelle.
 
 **Aucun test ne touche le vrai registre ni le vrai shell.**
 
