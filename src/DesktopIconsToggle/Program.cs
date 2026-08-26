@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using DesktopIconsToggle.Native;
 
 namespace DesktopIconsToggle;
@@ -86,6 +87,16 @@ internal static class Program
         taskbar.CaptureOriginalState();
 
         _taskbarCreatedMessage = Win32.RegisterWindowMessageW("TaskbarCreated");
+
+        // The manifest declares comctl32 v6, which switches every standard control (the
+        // hotkey dialog's buttons among them) to the current visual style instead of the
+        // pre-XP default. This call is what actually initialises that version.
+        var initControls = new Win32.INITCOMMONCONTROLSEX
+        {
+            dwSize = (uint)Marshal.SizeOf<Win32.INITCOMMONCONTROLSEX>(),
+            dwICC = Win32.ICC_STANDARD_CLASSES,
+        };
+        Win32.InitCommonControlsEx(ref initControls);
 
         var window = new AppWindow();
         _window = window;
@@ -183,6 +194,14 @@ internal static class Program
             }
             else if (mouseMessage == Win32.WM_RBUTTONUP)
             {
+                // A transient holder at startup — another app launching, or a previous
+                // instance still exiting — would otherwise cost the hotkey for the whole
+                // session, with the dialog as the only way back. Retry when the user looks.
+                if (_hotKey is not null && !_hotKey.IsRegistered)
+                {
+                    _hotKey.Register(_settings!.HotkeyModifiers, _settings.HotkeyVirtualKey);
+                }
+
                 _tray?.ShowMenu(new TrayMenuState(
                     IconToggler.AreIconsVisible(),
                     _settings!.HideTaskbar,
@@ -217,6 +236,22 @@ internal static class Program
             // after this returns, so deferring the restore to the message loop is not safe.
             Shutdown();
             return true;
+        }
+
+        if (msg == Win32.WM_SETTINGCHANGE)
+        {
+            // lParam points to a string naming the setting that changed, but is not
+            // guaranteed to be set — Windows sends WM_SETTINGCHANGE for many other kinds
+            // of change too, with a null lParam being the common case for those.
+            string? setting = lParam == IntPtr.Zero ? null : Marshal.PtrToStringUni(lParam);
+            if (setting == "ImmersiveColorSet")
+            {
+                _tray?.OnSettingsChanged();
+            }
+
+            // Not ours alone to swallow: other listeners (and DefWindowProc) also care
+            // about this broadcast, so let it keep propagating.
+            return false;
         }
 
         return false;

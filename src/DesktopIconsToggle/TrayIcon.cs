@@ -20,6 +20,7 @@ internal sealed class TrayIcon : IDisposable
     private const uint IconId = 1;
 
     private Win32.NOTIFYICONDATAW _data;
+    private readonly MenuIcons _menuIcons;
     private bool _visible;
 
     public TrayIcon(IntPtr ownerWindow)
@@ -28,6 +29,9 @@ internal sealed class TrayIcon : IDisposable
                                         new IntPtr(Win32.IDI_APPLICATION),
                                         Win32.IMAGE_ICON, 0, 0,
                                         Win32.LR_DEFAULTSIZE | Win32.LR_SHARED);
+
+        var theme = new Theme(new RegistryThemeSource());
+        _menuIcons = new MenuIcons((int)Win32.GetDpiForWindow(ownerWindow), theme);
 
         _data = new Win32.NOTIFYICONDATAW
         {
@@ -44,6 +48,14 @@ internal sealed class TrayIcon : IDisposable
     }
 
     public event Action<int>? CommandChosen;
+
+    /// <summary>
+    /// Forwards a system settings change (theme flip) to the cached menu icons.
+    /// <see cref="IconPalette.EnsureContrast"/> depends on the theme, so a light/dark
+    /// switch changes what colour each icon is contrast-corrected to — without this, the
+    /// bitmaps already cached under the old theme's colours would keep being reused.
+    /// </summary>
+    public void OnSettingsChanged() => _menuIcons.Invalidate();
 
     public void SetVisible(bool visible)
     {
@@ -91,15 +103,28 @@ internal sealed class TrayIcon : IDisposable
         {
             Win32.AppendMenuW(menu, Win32.MF_STRING, new UIntPtr(CmdToggle),
                               state.IconsVisible ? "Masquer les icônes" : "Afficher les icônes");
+            SetItemIcon(menu, CmdToggle, LucideIcons.Icon.HideIcons, MenuIcons.HideIconsColor, 255);
+
             Win32.AppendMenuW(menu, Win32.MF_SEPARATOR, UIntPtr.Zero, null);
+
             Win32.AppendMenuW(menu, Win32.MF_STRING | (state.HideTaskbar ? Win32.MF_CHECKED : 0),
                               new UIntPtr(CmdHideTaskbar), "Masquer aussi la barre des tâches");
+            SetItemIcon(menu, CmdHideTaskbar, LucideIcons.Icon.Taskbar, MenuIcons.TaskbarColor,
+                        state.HideTaskbar ? (byte)255 : IconPalette.InactiveAlpha);
+
             Win32.AppendMenuW(menu, Win32.MF_STRING, new UIntPtr(CmdChangeHotkey),
                               $"Raccourci : {state.HotkeyLabel}…");
+            SetItemIcon(menu, CmdChangeHotkey, LucideIcons.Icon.Keyboard, MenuIcons.KeyboardColor, 255);
+
             Win32.AppendMenuW(menu, Win32.MF_STRING | (state.AutostartEnabled ? Win32.MF_CHECKED : 0),
                               new UIntPtr(CmdAutostart), "Démarrage automatique");
+            SetItemIcon(menu, CmdAutostart, LucideIcons.Icon.Autostart, MenuIcons.AutostartColor,
+                        state.AutostartEnabled ? (byte)255 : IconPalette.InactiveAlpha);
+
             Win32.AppendMenuW(menu, Win32.MF_SEPARATOR, UIntPtr.Zero, null);
+
             Win32.AppendMenuW(menu, Win32.MF_STRING, new UIntPtr(CmdQuit), "Quitter");
+            SetItemIcon(menu, CmdQuit, LucideIcons.Icon.Quit, MenuIcons.QuitColor, 255);
 
             Win32.GetCursorPos(out var cursor);
             // Required so the menu closes when the user clicks elsewhere.
@@ -123,5 +148,37 @@ internal sealed class TrayIcon : IDisposable
         }
     }
 
-    public void Dispose() => SetVisible(false);
+    /// <summary>
+    /// Attaches the cached icon bitmap to a menu item via <c>MIIM_BITMAP</c>/
+    /// <c>hbmpItem</c> — used for all five items, including the two checkable toggles.
+    /// <c>hbmpItem</c> and the legacy <c>hbmpChecked</c>/<c>hbmpUnchecked</c> check-mark
+    /// gutter cannot coexist and the latter ignores 32-bit alpha DIBs entirely, which is
+    /// why the toggles used to show no icon at all; the caller still sets
+    /// <c>MF_CHECKED</c> on those two items so the state stays correct for accessibility
+    /// tools, and picks which bitmap (colour and alpha) to hand in here based on that same
+    /// state, since no native check mark is drawn once an item has <c>hbmpItem</c>.
+    /// </summary>
+    private void SetItemIcon(IntPtr menu, int commandId, LucideIcons.Icon icon, uint color, byte alpha)
+    {
+        IntPtr bitmap = _menuIcons.Get(icon, _menuIcons.Contrast(color), alpha);
+        if (bitmap == IntPtr.Zero)
+        {
+            return;
+        }
+
+        var info = new Win32.MENUITEMINFOW
+        {
+            cbSize = (uint)Marshal.SizeOf<Win32.MENUITEMINFOW>(),
+            fMask = Win32.MIIM_BITMAP,
+            hbmpItem = bitmap,
+        };
+
+        Win32.SetMenuItemInfoW(menu, (uint)commandId, false, ref info);
+    }
+
+    public void Dispose()
+    {
+        SetVisible(false);
+        _menuIcons.Dispose();
+    }
 }

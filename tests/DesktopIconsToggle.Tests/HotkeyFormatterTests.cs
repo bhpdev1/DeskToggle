@@ -113,4 +113,56 @@ public class HotkeyFormatterTests
         // Shift and Alt set, but flip the "obvious" bit ordering when combining.
         Assert.Equal("Alt+Maj+F5", HotkeyFormatter.Format(ModShift | ModAlt, 0x74));
     }
+
+    // ---- IsCommonlyUsedByApps ----
+
+    public static IEnumerable<object[]> CommonAppKeys =>
+    [
+        [0x09u], // Tab
+        [0x57u], // W
+        [0x53u], // S
+        [0x46u], // F
+        [0x43u], // C
+        [0x56u], // V
+        [0x58u], // X
+        [0x5Au], // Z
+        [0x41u], // A
+        [0x4Eu], // N
+        [0x54u], // T
+        [0x50u], // P
+    ];
+
+    [Theory]
+    [MemberData(nameof(CommonAppKeys))]
+    public void CtrlAloneWithAListedKeyIsCommonlyUsedByApps(uint virtualKey)
+    {
+        Assert.True(HotkeyFormatter.IsCommonlyUsedByApps(ModControl, virtualKey));
+    }
+
+    [Theory]
+    [MemberData(nameof(CommonAppKeys))]
+    public void CtrlWinWithAListedKeyIsNotCommonlyUsedByApps(uint virtualKey)
+    {
+        Assert.False(HotkeyFormatter.IsCommonlyUsedByApps(ModControl | ModWin, virtualKey));
+    }
+
+    [Theory]
+    [MemberData(nameof(CommonAppKeys))]
+    public void AListedKeyWithoutCtrlIsNotCommonlyUsedByApps(uint virtualKey)
+    {
+        Assert.False(HotkeyFormatter.IsCommonlyUsedByApps(0, virtualKey));
+        Assert.False(HotkeyFormatter.IsCommonlyUsedByApps(ModAlt | ModShift, virtualKey));
+    }
+
+    [Fact]
+    public void CtrlWithAKeyNotOnTheListIsNotCommonlyUsedByApps()
+    {
+        Assert.False(HotkeyFormatter.IsCommonlyUsedByApps(ModControl, 0x44)); // D
+    }
+
+    [Fact]
+    public void CtrlAltDTheAppsOwnDefaultIsNotCommonlyUsedByApps()
+    {
+        Assert.False(HotkeyFormatter.IsCommonlyUsedByApps(ModControl | ModAlt, 0x44)); // D
+    }
 }

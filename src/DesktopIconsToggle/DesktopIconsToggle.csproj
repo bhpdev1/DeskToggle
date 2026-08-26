@@ -7,9 +7,11 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <PublishAot>true</PublishAot>
     <InvariantGlobalization>true</InvariantGlobalization>
     <ApplicationIcon>app.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
     <AssemblyName>DesktopIconsToggle</AssemblyName>
     <RootNamespace>DesktopIconsToggle</RootNamespace>
   </PropertyGroup>
@@ -22,16 +24,16 @@
     qui fasse taire SmartScreen.
   -->
   <PropertyGroup>
-    <Version>2.0.0</Version>
-    <FileVersion>2.0.0.0</FileVersion>
-    <AssemblyVersion>2.0.0.0</AssemblyVersion>
+    <Version>2.1.0</Version>
+    <FileVersion>2.1.0.0</FileVersion>
+    <AssemblyVersion>2.1.0.0</AssemblyVersion>
     <Product>DesktopIconsToggle</Product>
     <!-- AssemblyTitle alimente FileDescription, le libellé que montrent le
          Gestionnaire des tâches et l'infobulle de l'explorateur. -->
     <AssemblyTitle>Masque et affiche les icônes du bureau</AssemblyTitle>
     <Description>Masque et affiche les icônes du bureau Windows, et la barre des tâches.</Description>
-    <Company>RBH</Company>
-    <Copyright>Copyright © 2026 RBH</Copyright>
+    <Company>BH Enterprises</Company>
+    <Copyright>Copyright © 2026 BH Enterprises</Copyright>
     <!-- Sans cela la version produit porte le hash du commit, qui n'a rien à faire
          dans un binaire distribué. -->
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>

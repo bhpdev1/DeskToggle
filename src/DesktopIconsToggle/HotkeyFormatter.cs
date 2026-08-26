@@ -8,6 +8,47 @@ internal static class HotkeyFormatter
     private const uint ModShift = 0x0004;
     private const uint ModWin = 0x0008;
 
+    /// <summary>
+    /// Virtual keys that, held with Ctrl alone, are near-universal application
+    /// conventions (browser tab switching, editor save/find, clipboard, and so on) —
+    /// the exact combinations a global hotkey would take over everywhere.
+    /// </summary>
+    private static readonly HashSet<uint> CommonAppKeysWithCtrl =
+    [
+        0x09, // Tab
+        0x57, // W
+        0x53, // S
+        0x46, // F
+        0x43, // C
+        0x56, // V
+        0x58, // X
+        0x5A, // Z
+        0x41, // A
+        0x4E, // N
+        0x54, // T
+        0x50, // P
+    ];
+
+    /// <summary>
+    /// True for combinations applications commonly bind, which a global hotkey would take
+    /// over everywhere. Not refused — the user may want one — but worth telling them.
+    /// </summary>
+    public static bool IsCommonlyUsedByApps(uint modifiers, uint virtualKey)
+    {
+        if ((modifiers & ModWin) != 0)
+        {
+            // Nothing in this family is an application convention once Win is held.
+            return false;
+        }
+
+        if ((modifiers & ModControl) == 0)
+        {
+            return false;
+        }
+
+        return CommonAppKeysWithCtrl.Contains(virtualKey);
+    }
+
     public static string Format(uint modifiers, uint virtualKey)
     {
         var parts = new List<string>(5);
