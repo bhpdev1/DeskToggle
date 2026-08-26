@@ -4,8 +4,8 @@ using DesktopIconsToggle.Native;
 namespace DesktopIconsToggle;
 
 /// <summary>
-/// Draws the two tray icon states the notification area shows: a square with four dots
-/// while the desktop icons are visible, and the same square, empty, while they are
+/// Draws the two tray icon states the notification area shows: a square frame with four
+/// blue tiles while the desktop icons are visible, and the same frame, empty, while they are
 /// hidden — so the tray icon itself answers "are my icons on" at a glance. Built the way
 /// <see cref="MenuIcons"/> builds its bitmaps — a 32-bit top-down <c>CreateDIBSection</c>
 /// written directly as premultiplied BGRA — then turned into an <c>HICON</c> via
@@ -16,9 +16,15 @@ namespace DesktopIconsToggle;
 /// </summary>
 internal sealed class TrayIconArt : IDisposable
 {
-    // COLORREF-style values (0x00BBGGRR), but grayscale so channel order is moot.
+    // COLORREF-style values (0x00BBGGRR), but grayscale so channel order is moot. Matches
+    // make-icon.ps1's near-white/near-black frame (RGB 235,235,235 / 32,32,32).
     private const uint LightTaskbarColor = 0x00202020u; // near-black, for a light taskbar
-    private const uint DarkTaskbarColor  = 0x00E8E8E8u; // near-white, for a dark taskbar
+    private const uint DarkTaskbarColor  = 0x00EBEBEBu; // near-white, for a dark taskbar
+
+    // The app icon's tile blue, RGB(120, 180, 255), written as a COLORREF (0x00BBGGRR):
+    // blue=0xFF, green=0xB4, red=0x78. Run through IconPalette.EnsureContrast before
+    // painting so it stays visible against whichever taskbar theme is active.
+    private const uint TileColor = 0x00FFB478u;
 
     private readonly Theme _theme;
     private IntPtr _visible;
@@ -30,10 +36,10 @@ internal sealed class TrayIconArt : IDisposable
         Refresh();
     }
 
-    /// <summary>Square with four dots — desktop icons are visible.</summary>
+    /// <summary>Square frame with four blue tiles — desktop icons are visible.</summary>
     public IntPtr Visible => _visible;
 
-    /// <summary>The same square, empty — desktop icons are hidden.</summary>
+    /// <summary>The same square frame, empty — desktop icons are hidden.</summary>
     public IntPtr Hidden => _hidden;
 
     /// <summary>
@@ -51,10 +57,11 @@ internal sealed class TrayIconArt : IDisposable
             size = 16;
         }
 
-        uint color = _theme.IsSystemDark ? DarkTaskbarColor : LightTaskbarColor;
+        uint frameColor = _theme.IsSystemDark ? DarkTaskbarColor : LightTaskbarColor;
+        uint tileColor = IconPalette.EnsureContrast(TileColor, _theme.IsSystemDark);
 
-        IntPtr newVisible = Render(size, color, withDots: true);
-        IntPtr newHidden = Render(size, color, withDots: false);
+        IntPtr newVisible = Render(size, frameColor, tileColor, withTiles: true);
+        IntPtr newHidden = Render(size, frameColor, tileColor, withTiles: false);
 
         DestroyIfPresent(_visible);
         DestroyIfPresent(_hidden);
@@ -80,7 +87,7 @@ internal sealed class TrayIconArt : IDisposable
     /// failure: keeping them would leak, and the leak would repeat on every
     /// <see cref="Refresh"/>.
     /// </summary>
-    private static IntPtr Render(int size, uint colorRef, bool withDots)
+    private static IntPtr Render(int size, uint frameColorRef, uint tileColorRef, bool withTiles)
     {
         IntPtr screenDc = Win32.GetDC(IntPtr.Zero);
         if (screenDc == IntPtr.Zero)
@@ -127,7 +134,7 @@ internal sealed class TrayIconArt : IDisposable
                 IntPtr previousBitmap = Win32.SelectObject(memDc, colorBitmap);
                 Win32.SelectObject(memDc, previousBitmap);
 
-                Paint(bits, size, colorRef, withDots);
+                Paint(bits, size, frameColorRef, tileColorRef, withTiles);
 
                 IntPtr maskBitmap = Win32.CreateBitmap(size, size, 1, 1, IntPtr.Zero);
                 if (maskBitmap == IntPtr.Zero)
@@ -164,35 +171,39 @@ internal sealed class TrayIconArt : IDisposable
     }
 
     /// <summary>
-    /// Writes the square outline and, when <paramref name="withDots"/> is true, the four
-    /// interior dots directly into the DIB's premultiplied BGRA buffer. Every pixel is
+    /// Writes the square outline and, when <paramref name="withTiles"/> is true, the four
+    /// interior tiles directly into the DIB's premultiplied BGRA buffer. Every pixel is
     /// written explicitly, drawn or not — this does not rely on the buffer's initial
     /// content. Every drawn pixel is fully opaque, so premultiplied equals the plain
     /// channel value (alpha 255: <c>channel * 255 / 255 == channel</c>); every other pixel
     /// is written as all-zero, i.e. fully transparent.
     ///
-    /// Geometry, with <c>n</c> the icon size and <c>w = max(1, n / 8)</c> the stroke width:
-    /// the square is inset by <c>w</c> on every side and stroked <c>w</c> thick, so its
-    /// interior spans <c>[2w, n - 2w)</c>. The four dots are <c>max(2, n / 5)</c> square,
-    /// centred on that interior's quarter points (at 1/4 and 3/4 along each axis), which
-    /// places them as a 2x2 arrangement with clear space around them.
+    /// Geometry mirrors <c>make-icon.ps1</c>'s 64 px canvas, scaled from <c>n</c>, the icon
+    /// size: the frame stroke is <c>w = max(1, round(n / 16))</c>; the square is inset by
+    /// <c>w</c> on every side and stroked <c>w</c> thick, so its interior spans
+    /// <c>[2w, n - 2w)</c>. The four tiles are <c>max(2, round(n * 10 / 64))</c> square,
+    /// with top-left corners at <c>round(n * 18 / 64)</c> and <c>round(n * 36 / 64)</c> on
+    /// both axes — the script's 10 px tiles placed at 18 and 36 on its 64 px canvas.
     /// </summary>
-    private static unsafe void Paint(IntPtr bits, int size, uint colorRef, bool withDots)
+    private static unsafe void Paint(IntPtr bits, int size, uint frameColorRef, uint tileColorRef, bool withTiles)
     {
-        byte r = (byte)(colorRef & 0xFF);
-        byte g = (byte)((colorRef >> 8) & 0xFF);
-        byte b = (byte)((colorRef >> 16) & 0xFF);
+        byte frameR = (byte)(frameColorRef & 0xFF);
+        byte frameG = (byte)((frameColorRef >> 8) & 0xFF);
+        byte frameB = (byte)((frameColorRef >> 16) & 0xFF);
 
-        int w = Math.Max(1, size / 8);
+        byte tileR = (byte)(tileColorRef & 0xFF);
+        byte tileG = (byte)((tileColorRef >> 8) & 0xFF);
+        byte tileB = (byte)((tileColorRef >> 16) & 0xFF);
+
+        int w = Math.Max(1, (int)Math.Round(size / 16.0));
         int outerLo = w;
         int outerHi = size - w;      // exclusive
         int innerLo = 2 * w;
         int innerHi = size - 2 * w;  // exclusive
 
-        int dotSide = Math.Max(2, size / 5);
-        int interiorSize = innerHi - innerLo;
-        int q1 = innerLo + interiorSize / 4;
-        int q3 = innerLo + interiorSize * 3 / 4;
+        int tileSide = Math.Max(2, (int)Math.Round(size * 10.0 / 64.0));
+        int nearOffset = (int)Math.Round(size * 18.0 / 64.0);
+        int farOffset = (int)Math.Round(size * 36.0 / 64.0);
 
         byte* pixels = (byte*)bits;
         for (int y = 0; y < size; y++)
@@ -202,18 +213,25 @@ internal sealed class TrayIconArt : IDisposable
                 bool onOutline = x >= outerLo && x < outerHi && y >= outerLo && y < outerHi
                                && !(x >= innerLo && x < innerHi && y >= innerLo && y < innerHi);
 
-                bool onDot = withDots &&
-                             (InSquare(x, y, q1, q1, dotSide) ||
-                              InSquare(x, y, q3, q1, dotSide) ||
-                              InSquare(x, y, q1, q3, dotSide) ||
-                              InSquare(x, y, q3, q3, dotSide));
+                bool onTile = withTiles &&
+                              (InSquare(x, y, nearOffset, nearOffset, tileSide) ||
+                               InSquare(x, y, farOffset, nearOffset, tileSide) ||
+                               InSquare(x, y, nearOffset, farOffset, tileSide) ||
+                               InSquare(x, y, farOffset, farOffset, tileSide));
 
                 byte* pixel = pixels + (y * size + x) * 4;
-                if (onOutline || onDot)
+                if (onOutline)
                 {
-                    pixel[0] = b;
-                    pixel[1] = g;
-                    pixel[2] = r;
+                    pixel[0] = frameB;
+                    pixel[1] = frameG;
+                    pixel[2] = frameR;
+                    pixel[3] = 255;
+                }
+                else if (onTile)
+                {
+                    pixel[0] = tileB;
+                    pixel[1] = tileG;
+                    pixel[2] = tileR;
                     pixel[3] = 255;
                 }
                 else
@@ -227,12 +245,11 @@ internal sealed class TrayIconArt : IDisposable
         }
     }
 
-    private static bool InSquare(int x, int y, int centerX, int centerY, int side)
+    /// <summary>Top-left-corner square test: true when (x, y) falls within a
+    /// <paramref name="side"/>-pixel square whose top-left corner is (<paramref name="left"/>, <paramref name="top"/>).</summary>
+    private static bool InSquare(int x, int y, int left, int top, int side)
     {
-        int half = side / 2;
-        int loX = centerX - half;
-        int loY = centerY - half;
-        return x >= loX && x < loX + side && y >= loY && y < loY + side;
+        return x >= left && x < left + side && y >= top && y < top + side;
     }
 
     public void Dispose()
