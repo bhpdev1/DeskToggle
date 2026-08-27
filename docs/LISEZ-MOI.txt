@@ -1,0 +1,136 @@
+﻿DesktopIconsToggle
+==================
+
+Masque et affiche les icones du bureau Windows d'un raccourci clavier,
+et si tu veux la barre des taches avec.
+
+Aucune installation. Un seul fichier. Copie-le ou tu veux, par exemple
+dans C:\Tools\, et double-clique dessus.
+
+
+AU PREMIER LANCEMENT : L'AVERTISSEMENT WINDOWS
+----------------------------------------------
+
+Si tu as recu ce fichier par Discord, par mail ou par un lien de
+telechargement, Windows va afficher un ecran bleu :
+
+    "Windows a protege votre ordinateur"
+
+C'est normal et attendu. Le programme n'est pas signe numeriquement
+(un certificat coute plusieurs centaines d'euros par an), donc Windows
+ne le reconnait pas. Il ne dit pas qu'il y a un virus, il dit qu'il ne
+connait pas ce fichier.
+
+Pour le lancer :
+
+    1. Clique sur le petit lien "Informations complementaires"
+    2. Puis sur le bouton "Executer quand meme"
+
+Le bouton n'apparait qu'apres avoir clique sur le lien. C'est la que la
+plupart des gens abandonnent.
+
+Si tu as recu le fichier sur une cle USB ou par le reseau local, cet
+avertissement n'apparait pas du tout.
+
+Ton antivirus peut aussi tiquer : le programme capture un raccourci
+clavier global et s'inscrit au demarrage de Windows, deux comportements
+que les antivirus surveillent. C'est un faux positif.
+
+
+UTILISATION
+-----------
+
+Deux facons de basculer les icones :
+
+  - Le raccourci clavier : Ctrl + Alt + D
+  - L'icone dans la zone de notification, en bas a droite
+
+L'icone n'apparait que quand le bureau est au premier plan, c'est-a-dire
+au moment ou elle te sert. Clic gauche pour basculer, clic droit pour le
+menu.
+
+L'icone montre l'etat : un carre avec quatre pastilles bleues quand les
+icones du bureau sont visibles, un carre vide quand elles sont masquees.
+
+
+LE MENU (clic droit sur l'icone)
+--------------------------------
+
+  Masquer / Afficher les icones     La meme chose que le raccourci
+  Masquer aussi la barre des taches Etend la bascule a la barre
+  Raccourci : ...                   Changer la combinaison
+  Demarrage automatique             Lancer avec la session Windows
+  Quitter                           Restaure tout, puis ferme
+
+
+CHANGER LE RACCOURCI
+--------------------
+
+Menu, puis "Raccourci : ...". Appuie sur la combinaison voulue. Il faut
+au moins une touche de modification (Ctrl, Alt, Maj ou Windows).
+
+Echap seul annule, Alt+F4 aussi.
+
+Deux choses a savoir :
+
+  - Evite les combinaisons avec la touche Windows. Windows les traite
+    avant nous, donc le raccourci peut sembler accepte et ne jamais
+    fonctionner.
+
+  - Si tu appuies sur une combinaison et qu'il ne se passe rien dans la
+    fenetre, c'est qu'une autre application la possede deja. Essaie
+    quelque chose de manifestement libre, par exemple Ctrl+Alt+Maj+F9.
+
+
+LA BARRE DES TACHES
+-------------------
+
+L'option n'efface pas la barre : elle active le masquage automatique de
+Windows. La barre revient donc quand la souris descend en bas de l'ecran.
+
+Si tu utilisais deja le masquage automatique avant, il est preserve.
+
+Le reglage est global : Windows ne permet pas de masquer la barre sur un
+seul ecran.
+
+
+SI LES ICONES NE REVIENNENT PAS
+-------------------------------
+
+Elles reviennent toujours quand tu quittes proprement par le menu.
+
+Si le programme a ete tue brutalement (Gestionnaire des taches, coupure
+de courant), il repare tout seul au lancement suivant.
+
+Et dans tous les cas, tu peux les remettre a la main en deux clics :
+
+    Clic droit sur le bureau  ->  Affichage  ->  Afficher les elements
+    du Bureau
+
+C'est exactement la meme commande que celle utilisee par le programme,
+et elle reste toujours disponible.
+
+
+DESINSTALLER
+------------
+
+  1. Clic droit sur l'icone, decoche "Demarrage automatique"
+  2. Clic droit, "Quitter"
+  3. Supprime le fichier .exe
+
+Pour ne rien laisser du tout, supprime aussi la cle de registre
+HKCU\Software\DesktopIconsToggle, qui contient le raccourci choisi et
+l'etat des options. Le programme n'ecrit nulle part ailleurs.
+
+
+CONFIGURATION REQUISE
+---------------------
+
+Windows 10 ou 11, 64 bits. Rien d'autre.
+
+Le programme occupe environ 3 Mo de memoire et n'utilise aucun processeur
+quand il ne fait rien : il attend des evenements, il ne surveille rien en
+boucle.
+
+
+Version 2.1.0 - welcometothesale
