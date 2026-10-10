@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<!-- Before / after illustration (stylized desktop, not a capture). -->
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../brand.css"><link rel="stylesheet" href="frame.css">
+<style>
+  .scene { top: 92px; width: 400px; height: 270px; }
+  .scene.a { left: 70px; }
+  .scene.b { left: 530px; }
+  .scene .icons { inset: 46px 14px 44px 14px; gap: 16px 6px; }
+  .scene .ic i { width: 26px; height: 26px; }
+  .scene .ic i.doc { width: 21px; }
+  .scene .taskbar { height: 32px; }
+  .scene .taskbar span { width: 18px; height: 18px; }
+  .state { top: 12px; left: 12px; }
+  .arrow { position: absolute; left: 481px; top: 210px; width: 38px; height: 38px; color: var(--signal); }
+  .press { position: absolute; left: 0; right: 0; top: 392px; display: flex; justify-content: center; }
+</style></head>
+<body>
+  <div class="bg"></div><div class="gridlines"></div>
+  <div class="tag"><img src="../logo.svg" alt="">DeskToggle <em>/</em> one keystroke</div>
+
+  <div class="scene a"><div class="layer"><div class="wall"></div>
+    <div class="icons" data-cols="7" data-rows="3" data-holes="8,15"></div>
+    <div class="taskbar"><span class="start"></span><span></span><span></span><span></span><span></span></div></div>
+    <span class="state on">Before</span></div>
+
+  <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+
+  <div class="scene b"><div class="layer off"><div class="wall"></div></div>
+    <span class="state off">After</span></div>
+
+  <div class="press keys">
+    <span class="key">Ctrl</span><span class="plus">+</span><span class="key">Alt</span><span class="plus">+</span><span class="key signal">D</span>
+  </div>
+  <p class="caption"><b>Icons and taskbar out of the way</b> for screen sharing, streaming or focus. Press again to bring them back.</p>
+  <div class="grain"></div>
+  <script src="../scene.js"></script>
+</body></html>

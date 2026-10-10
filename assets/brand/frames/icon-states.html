@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<!-- Tray icon states, redrawn from TrayIconArt geometry (frame + 2x2 tiles, tile blue #78B4FF). -->
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../brand.css"><link rel="stylesheet" href="frame.css">
+<style>
+  .st { position: absolute; top: 104px; width: 300px; height: 300px; border-radius: 20px;
+    background: var(--surface); border: 1px solid var(--line-strong);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 26px;
+    box-shadow: 0 24px 60px rgba(0,0,0,.5); }
+  .st.a { left: 150px; box-shadow: 0 0 0 1px rgba(120,180,255,.25), 0 0 60px rgba(120,180,255,.10), 0 24px 60px rgba(0,0,0,.5); }
+  .st.b { left: 550px; }
+  .st svg { width: 150px; height: 150px; }
+  .st .label { font: 600 12px/1 var(--mono); letter-spacing: 1.6px; text-transform: uppercase; }
+  .st.a .label { color: var(--signal); }
+  .st.b .label { color: var(--dim); }
+  .mid { position: absolute; left: 470px; top: 228px; }
+</style></head>
+<body>
+  <div class="bg"></div><div class="gridlines"></div>
+  <div class="tag"><img src="../logo.svg" alt="">DeskToggle <em>/</em> tray icon</div>
+
+  <div class="st a">
+    <svg viewBox="0 0 64 64"><rect x="6" y="6" width="52" height="52" fill="none" stroke="#ECEBE6" stroke-width="5"/>
+      <rect x="18" y="18" width="11" height="11" fill="#78B4FF"/><rect x="35" y="18" width="11" height="11" fill="#78B4FF"/>
+      <rect x="18" y="35" width="11" height="11" fill="#78B4FF"/><rect x="35" y="35" width="11" height="11" fill="#78B4FF"/></svg>
+    <span class="label">Icons visible</span>
+  </div>
+  <div class="mid keys"><span class="key signal">D</span></div>
+  <div class="st b">
+    <svg viewBox="0 0 64 64"><rect x="6" y="6" width="52" height="52" fill="none" stroke="#ECEBE6" stroke-width="5"/></svg>
+    <span class="label">Icons hidden</span>
+  </div>
+  <p class="caption"><b>The tray icon mirrors the current state</b> and follows the light or dark taskbar theme.</p>
+  <div class="grain"></div>
+</body></html>

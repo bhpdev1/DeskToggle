@@ -5,6 +5,17 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- Project renamed **DeskToggle** (brand, README and repository). The executable,
+  namespace and autostart value keep the `DesktopIconsToggle` name for now.
+- Relicensed from MIT to the **GNU General Public License v3.0**, matching FolderTags.
+- New visual identity ("Lights Off"): logo, README hero, GitHub social preview and
+  framed screenshots, rendered by `scripts/render-brand.ps1`.
+- Single bilingual `README.md` (English / Français) replaces `README.fr.md`.
+
 ## [2.1.0] - 2026-08-26
 
 ### Added

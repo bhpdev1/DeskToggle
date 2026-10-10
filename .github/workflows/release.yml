@@ -40,7 +40,7 @@ jobs:
         with:
           files: src/DesktopIconsToggle/bin/Release/net10.0-windows/win-x64/publish/DesktopIconsToggle.exe
           body: |
-            ## DesktopIconsToggle ${{ github.ref_name }}
+            ## DeskToggle ${{ github.ref_name }}
 
             **Windows will warn you before you can run this.** The executable is
             unsigned, so SmartScreen shows "Windows protected your PC" the first
@@ -50,6 +50,6 @@ jobs:
             executable via USB or a local network share carries no Mark of the Web
             and shows no such warning.
 
-            See the [README](https://github.com/YOUR-GITHUB-USERNAME/desktop-icons-toggle#readme)
-            for usage, the [CHANGELOG](https://github.com/YOUR-GITHUB-USERNAME/desktop-icons-toggle/blob/main/CHANGELOG.md)
+            See the [README](https://github.com/bhpdev1/DeskToggle#readme)
+            for usage, the [CHANGELOG](https://github.com/bhpdev1/DeskToggle/blob/main/CHANGELOG.md)
             for what changed, and the known limitations before reporting an issue.

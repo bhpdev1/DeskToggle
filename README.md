@@ -1,233 +1,205 @@
-# DesktopIconsToggle
+<div align="center">
 
-[![build](https://github.com/YOUR-GITHUB-USERNAME/desktop-icons-toggle/actions/workflows/ci.yml/badge.svg)](https://github.com/YOUR-GITHUB-USERNAME/desktop-icons-toggle/actions/workflows/ci.yml)
-[![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+<img src="assets/brand/logo-256.png" alt="DeskToggle logo" width="112" height="112">
 
-*[Lire en français](README.fr.md)*
+# DeskToggle
 
-A tiny, self-contained Windows utility that hides and shows your desktop
-icons with a hotkey or a tray icon, instead of the right-click menu — and
-optionally does the same to the taskbar.
+**One keystroke to hide your desktop icons and taskbar. Press it again to bring them back.**<br>
+<em>Un raccourci pour masquer les icônes du bureau et la barre des tâches. Un second appui pour les retrouver.</em>
 
-> **The application's interface is French only.** There is no
-> localisation layer. This README is in English so the project is
-> approachable on GitHub, but every menu, dialog and tooltip you will
-> actually see is in French. If that is a dealbreaker, stop here.
+<img src="https://img.shields.io/badge/Windows-11%20%7C%2010-0078D4?style=flat-square&logo=windows11&logoColor=white" alt="Windows 11 and 10">
+<img src="https://img.shields.io/badge/.NET%2010-NativeAOT-512BD4?style=flat-square&logo=dotnet&logoColor=white" alt=".NET 10 NativeAOT">
+<img src="https://img.shields.io/badge/Size-~1.5%20MB-78B4FF?style=flat-square" alt="About 1.5 MB">
+<img src="https://img.shields.io/badge/Idle%20CPU-0%20ms-22c55e?style=flat-square" alt="0 ms idle CPU">
+<img src="https://img.shields.io/badge/Admin%20rights-none-3A3C42?style=flat-square" alt="No admin rights">
+<img src="https://img.shields.io/badge/License-GPLv3-78B4FF?style=flat-square" alt="GNU GPLv3 License">
 
-## Features
+<br><br>
 
-- **Global hotkey**, `Ctrl+Alt+D` by default, configurable from the tray
-  menu via a capture dialog.
-- **Tray (notification-area) icon**, shown only while the desktop is the
-  foreground window. Left-click toggles, right-click opens the menu.
-- **Optional taskbar auto-hide**, extending the same toggle to the
-  taskbar by switching Windows' own auto-hide behaviour — not by hiding
-  or destroying anything.
-- **Starts with your session**, via the `HKCU` `Run` key — no
-  administrator rights required, no installer.
-- **Crash-safe**: icons and taskbar state are restored on every exit path
-  and repaired automatically on the next launch if the process was
-  killed instead of exited cleanly.
-- **Minimal footprint**: a single ~1.5 MB executable, no runtime to
-  install, ~3 MB of private memory and 0 ms of CPU while idle.
+<img src="assets/hero.png" alt="DeskToggle: one keystroke, desktop icons and taskbar gone, then back" width="100%">
 
-## Screenshots
+<a href="#english">English</a> • <a href="#français">Français</a> • <a href="CHANGELOG.md">Changelog</a>
 
-<!--
-  Drop the two screenshots below into docs/images/ and uncomment this
-  block. A broken image link looks worse than no image, hence the comment.
+</div>
 
-  1. docs/images/menu.png — the tray right-click menu, showing the five
-     entries (toggle, "Masquer aussi la barre des tâches", the current
-     hotkey, "Démarrage automatique", "Quitter") with their coloured
-     Lucide icons and check marks.
-  2. docs/images/hotkey-dialog.png — the hotkey capture dialog, mid-capture
-     or on its confirmation step, showing the system font, rounded
-     corners and theme-matched colours.
+---
 
-  ![Tray menu](docs/images/menu.png)
-  ![Hotkey capture dialog](docs/images/hotkey-dialog.png)
--->
+<a name="english"></a>
+## 🇬🇧 English
 
-## Installation
+### Why DeskToggle
 
-1. Download `DesktopIconsToggle.exe` (see [Releases](../../releases), or
-   build it yourself — see below).
-2. Copy it anywhere, for example `C:\Tools\`.
-3. Run it.
-4. Right-click the tray icon → check **Démarrage automatique** if you
-   want it to start with Windows.
+You are about to share your screen, start a stream or settle in for focused work, and your desktop is covered in folders, downloads and shortcuts. Windows can hide them, but only through *right-click → View → Show desktop icons*, and the taskbar has its own setting buried somewhere else.
 
-The executable is self-contained: no .NET runtime install is required.
+**DeskToggle** turns both into a single keystroke:
+- **One hotkey**, `Ctrl+Alt+D` by default, hides the desktop icons. Press it again and they come back.
+- **Optional taskbar**: the same keystroke can also switch the taskbar to auto-hide.
+- **Nothing is destroyed or rewritten**: DeskToggle drives the same switches Windows already offers, and puts everything back as it found it.
+- **Invisible when idle**: a single native executable, no runtime, no installer, no admin rights.
 
-Windows will warn you the first time — see [Limitations](#limitations).
+---
 
-## Usage
+### ✨ Features
 
-Two ways to toggle:
+| Feature | What you get |
+| :--- | :--- |
+| **Global hotkey** | `Ctrl+Alt+D` by default. Change it in a capture dialog; each combination is test-registered with Windows before it is accepted. |
+| **Discreet tray icon** | Appears only while the desktop is in front. Left-click toggles, right-click opens the menu. The icon shows the current state. |
+| **Taskbar option** | Extends the toggle to the taskbar using Windows' own auto-hide. Your existing auto-hide preference is preserved. |
+| **Crash-safe** | Icons and taskbar are restored on every exit path, and repaired on the next launch if the process was ever killed. |
+| **Starts with Windows** | One menu entry, per-user. No installer, no admin prompt. |
+| **Tiny footprint** | One ~1.5 MB executable, about 3 MB of memory and 0 ms of CPU while idle. No keyboard hook. |
 
-- **Global hotkey**, `Ctrl+Alt+D` by default, configurable from the menu.
-- **Tray icon**, present only while the desktop is in the foreground.
-  Left-click to toggle, right-click for the menu.
+---
 
-### The menu
+### 📸 Screenshots
 
-| Entry (French) | Effect |
-|---|---|
-| *Afficher / Masquer les icônes* | Toggles, same as the hotkey |
-| *Masquer aussi la barre des tâches* | Extends the toggle to the taskbar |
-| *Raccourci : …* | Opens the capture dialog to change the combination |
-| *Démarrage automatique* | Starts the app with the Windows session |
-| *Quitter* | Restores everything, then exits |
+<div align="center">
 
-### Changing the hotkey
+| One keystroke, before and after | The tray menu |
+| :---: | :---: |
+| <img src="assets/screenshots/toggle.png" width="420" alt="Stylized desktop before and after pressing Ctrl+Alt+D"> | <img src="assets/screenshots/tray-menu.png" width="420" alt="Tray icon right-click menu"> |
+| **Pick your own shortcut** | **Tray icon states** |
+| <img src="assets/screenshots/hotkey-dialog.png" width="420" alt="Hotkey capture dialog"> | <img src="assets/screenshots/icon-states.png" width="420" alt="Tray icon with icons visible and hidden"> |
 
-Menu → *Raccourci : …*. Press the combination you want; at least one
-modifier key is required. **Escape alone, and Alt+F4, cancel** — Escape
-with a modifier is still a valid choice, and Alt+F4 is refused because
-registering it would take "close window" away from the entire system.
+<sub>Menu and dialog are actual captures. The app's interface is in French only.</sub>
 
-On first run, until you have chosen a combination yourself, the app
-tries `Ctrl+Alt+D`, then `Ctrl+Alt+Shift+D`, then `Ctrl+Alt+Shift+F9`,
-and keeps the first one Windows grants. The menu shows whichever one
-actually won.
+</div>
 
-The chosen combination is tested with a real registration before being
-accepted, which rules out combinations Windows refuses outright. It does
-**not** rule out the Windows-key problem described in
-[Limitations](#limitations).
+---
 
-### The taskbar option
+### 🚀 Installation & Usage
 
-The option does not hide the taskbar by destroying or covering it: it
-turns on Windows' own **auto-hide**. The taskbar reappears when the
-pointer reaches the bottom of the screen, and Explorer handles that
-reveal — the app implements no polling and adds no latency.
+#### Option A: Pre-built executable
+1. Download `DesktopIconsToggle.exe` from [Releases](https://github.com/bhpdev1/DeskToggle/releases).
+2. Put it anywhere (for example `C:\Tools\`) and run it. The tray icon appears whenever the desktop is in front.
+3. Press **`Ctrl+Alt+D`** (or left-click the tray icon) to hide or show the icons.
+4. Right-click the tray icon to also hide the taskbar, change the shortcut, or enable **start with Windows**.
+5. **Quit** always restores everything before exiting.
 
-Two consequences:
+If `Ctrl+Alt+D` is already taken, DeskToggle falls back to another combination on first run. The menu always shows the one actually in use.
 
-- If you already had auto-hide enabled, it is preserved: the app reads
-  your setting at launch and restores exactly that, not "off".
-- The setting is **global** — there is no Windows API to auto-hide the
-  taskbar on a single monitor, so the option applies to every display.
+#### Option B: Build from source
+Requires the .NET 10 SDK and, for the NativeAOT publish, the MSVC build tools and Windows SDK (Visual Studio Build Tools).
 
-## Safety guarantees
-
-- Desktop icons are restored on every exit path: the *Quitter* menu
-  entry, an exception in a window procedure, `WM_ENDSESSION` (session
-  logoff/shutdown), and `ProcessExit`.
-- The taskbar is returned to the auto-hide state observed at launch, so
-  a user who already used auto-hide keeps it — the app never claims
-  ownership of a setting it didn't turn on.
-- If the process is killed outright, registry markers record that icons
-  or the taskbar were hidden by the app. The next launch reads those
-  markers and repairs both. A restore that cannot be confirmed **keeps**
-  its marker rather than clearing it, so a future launch retries instead
-  of silently giving up.
-- The one gap no program can close: the process is killed while icons
-  are hidden, and never relaunched. Recovery is two clicks — right-click
-  the desktop, **Affichage**, **Afficher les éléments du Bureau** — the
-  same menu the app itself uses, which it never disables.
-
-## Limitations
-
-Read this before filing an issue — several of these are inherent to how
-Windows works, not bugs in this app.
-
-- **The interface is French only.** There is no localisation layer.
-- **The executable is unsigned.** Windows SmartScreen shows "Windows
-  protected your PC" when it's run after being downloaded from the
-  internet; click **More info**, then **Run anyway**. Copying it via USB
-  or a local network share carries no Mark of the Web and shows no such
-  warning. Code signing is the only real fix, and this project doesn't
-  do it (yet).
-- **Windows-key combinations can register successfully yet never fire.**
-  Explorer processes `Win`+key through its own keyboard hook, ahead of
-  registered-hotkey dispatch, so `RegisterHotKey` reporting success
-  proves nothing for that family. This was measured, not theorised:
-  `Win+Shift+D` was granted by `RegisterHotKey` — a second registration
-  attempt from another process was refused with
-  `ERROR_HOTKEY_ALREADY_REGISTERED`, confirming the first one really
-  held the registration — and yet no `WM_HOTKEY` message ever arrived.
-  That is why no Windows-key combination is offered by default.
-- **The capture dialog cannot detect a combination already owned by
-  another application.** That application receives the keystroke
-  instead, so the dialog never sees it and simply stays silent.
-- **Taskbar auto-hide is a global Windows setting.** There is no
-  per-monitor API, so the option applies to every display.
-- **A combination that other applications commonly bind** (`Ctrl+Tab`,
-  `Ctrl+W`, and similar) can still be chosen — the dialog warns you, but
-  lets you proceed — and doing so takes that shortcut away everywhere,
-  not just in this app.
-- **The `WorkerW` fallback for locating the desktop has never been
-  exercised in practice.** It only triggers with animated wallpapers or
-  some multi-monitor configurations.
-
-## Building from source
-
-**Prerequisites:**
-
-- .NET SDK 10
-- MSVC and the Windows SDK, from Visual Studio Build Tools (NativeAOT
-  links the final executable with `link.exe`)
-
-```
+```powershell
+git clone https://github.com/bhpdev1/DeskToggle.git
+cd DeskToggle
 dotnet test tests/DesktopIconsToggle.Tests
 dotnet publish src/DesktopIconsToggle -c Release -r win-x64
 ```
 
-The executable is produced at
-`src/DesktopIconsToggle/bin/Release/net10.0-windows/win-x64/publish/DesktopIconsToggle.exe`.
+The executable lands in `src/DesktopIconsToggle/bin/Release/net10.0-windows/win-x64/publish/`. See [CONTRIBUTING.md](CONTRIBUTING.md) for the test rules and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how it works.
 
-It targets `net10.0-windows`, `win-x64`, built with `PublishAot=true`:
-hand-written Win32 P/Invoke, no WinForms, no WPF. Release builds strip
-debug symbols (`DebugType=none`) — a NativeAOT `.pdb` is roughly 10 MB
-and carries every class and method name, which would undo most of the
-benefit NativeAOT has over analysis of the binary.
+---
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for coding conventions and test
-requirements, and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for a
-tour of the design (the fuller, authoritative record is the French spec
-at [`docs/superpowers/specs/2026-08-25-desktop-icons-toggle-design.md`](docs/superpowers/specs/2026-08-25-desktop-icons-toggle-design.md)).
+### ⚠️ Good to know
 
-## Project layout
+- **French-only interface.** Menus and dialogs are in French.
+- **Unsigned executable.** SmartScreen warns on first launch after a download: *More info → Run anyway*.
+- **Windows-key shortcuts** (`Win+…`) can register yet never fire, because Explorer handles them first. None are offered by default.
+- **Taskbar auto-hide is global.** Windows has no per-monitor setting, so it applies to every screen.
+- **Manual recovery**, if the app is killed while icons are hidden and never relaunched: right-click the desktop → *View* → *Show desktop icons*.
 
+---
+
+### ⚙️ Under the hood
+
+Native Windows executable built with **.NET 10 NativeAOT**: hand-written Win32 interop, no WinForms or WPF, no runtime to install. It uses Windows' own *Show desktop icons* switch and the taskbar's own auto-hide setting, and stores its preferences per-user. The pure logic is covered by **179 xUnit tests**.
+
+---
+
+### 📜 License
+
+DeskToggle is licensed under the **GNU General Public License v3.0**, see [LICENSE](LICENSE). Tray menu icons are derived from [Lucide](https://lucide.dev) (ISC), see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+
+---
+
+<a name="français"></a>
+## 🇫🇷 Français
+
+### Pourquoi DeskToggle
+
+Vous allez partager votre écran, lancer un stream ou vous concentrer, et votre bureau déborde de dossiers, de téléchargements et de raccourcis. Windows sait les masquer, mais seulement via *clic droit → Affichage → Afficher les éléments du Bureau*, et la barre des tâches a son propre réglage, rangé ailleurs.
+
+**DeskToggle** réunit les deux en un seul raccourci :
+- **Un raccourci**, `Ctrl+Alt+D` par défaut, masque les icônes du bureau. Un second appui les fait revenir.
+- **Barre des tâches en option** : le même raccourci peut aussi passer la barre en masquage automatique.
+- **Rien n'est détruit ni réécrit** : DeskToggle actionne les mêmes réglages que Windows propose déjà, et remet tout comme il l'a trouvé.
+- **Invisible au repos** : un seul exécutable natif, sans runtime, sans installeur, sans droits administrateur.
+
+---
+
+### ✨ Fonctionnalités
+
+| Fonctionnalité | Ce que vous obtenez |
+| :--- | :--- |
+| **Raccourci global** | `Ctrl+Alt+D` par défaut. Modifiable dans une fenêtre de capture ; chaque combinaison est testée auprès de Windows avant d'être acceptée. |
+| **Icône de notification discrète** | Visible uniquement quand le bureau est au premier plan. Clic gauche pour basculer, clic droit pour le menu. L'icône reflète l'état courant. |
+| **Option barre des tâches** | Étend la bascule à la barre via le masquage automatique de Windows. Votre réglage existant est préservé. |
+| **Résistant aux plantages** | Icônes et barre restaurées à chaque sortie, et réparées au lancement suivant si le processus a été tué. |
+| **Démarrage avec Windows** | Une entrée de menu, par utilisateur. Ni installeur, ni demande d'élévation. |
+| **Empreinte minime** | Un exécutable d'environ 1,5 Mo, environ 3 Mo de mémoire et 0 ms de CPU au repos. Aucun hook clavier. |
+
+---
+
+### 📸 Captures d'écran
+
+<div align="center">
+
+| Un raccourci, avant et après | Le menu de notification |
+| :---: | :---: |
+| <img src="assets/screenshots/toggle.png" width="420" alt="Bureau stylisé avant et après Ctrl+Alt+D"> | <img src="assets/screenshots/tray-menu.png" width="420" alt="Menu clic droit de l'icône de notification"> |
+| **Votre propre raccourci** | **États de l'icône** |
+| <img src="assets/screenshots/hotkey-dialog.png" width="420" alt="Fenêtre de capture du raccourci"> | <img src="assets/screenshots/icon-states.png" width="420" alt="Icône de notification, icônes affichées et masquées"> |
+
+<sub>Le menu et la fenêtre sont de vraies captures. L'interface est uniquement en français.</sub>
+
+</div>
+
+---
+
+### 🚀 Installation & utilisation
+
+#### Option A : exécutable précompilé
+1. Téléchargez `DesktopIconsToggle.exe` depuis les [Releases](https://github.com/bhpdev1/DeskToggle/releases).
+2. Placez-le où vous voulez (par exemple `C:\Outils\`) et lancez-le. L'icône apparaît dès que le bureau est au premier plan.
+3. Appuyez sur **`Ctrl+Alt+D`** (ou clic gauche sur l'icône) pour masquer ou afficher les icônes.
+4. Clic droit sur l'icône pour masquer aussi la barre des tâches, changer le raccourci ou activer le **démarrage automatique**.
+5. **Quitter** restaure toujours tout avant de fermer.
+
+Si `Ctrl+Alt+D` est déjà pris, DeskToggle se rabat sur une autre combinaison au premier lancement. Le menu affiche toujours celle réellement utilisée.
+
+#### Option B : compiler depuis les sources
+Nécessite le SDK .NET 10 et, pour la publication NativeAOT, les outils MSVC et le SDK Windows (Visual Studio Build Tools).
+
+```powershell
+git clone https://github.com/bhpdev1/DeskToggle.git
+cd DeskToggle
+dotnet test tests/DesktopIconsToggle.Tests
+dotnet publish src/DesktopIconsToggle -c Release -r win-x64
 ```
-src/DesktopIconsToggle/
-├── Program.cs           entry point, wiring, crash recovery, clean shutdown
-├── AppWindow.cs          hidden top-level window, WndProc, message loop
-├── Native/Win32.cs       P/Invoke: user32, shell32, gdi32, kernel32
-├── IconToggler.cs        finds SHELLDLL_DefView, toggles, reads state
-├── DesktopWatcher.cs     WinEvent hook, shell and own-process exemptions
-├── HotKey.cs             RegisterHotKey, transactional registration
-├── HotkeyCapture.cs      modal dialog for choosing a combination
-├── HotkeyFormatter.cs    combination → French label (no Win32, unit-testable)
-├── TaskbarHider.cs       SHAppBarMessage, auto-hide, original-state capture
-├── TaskbarPolicy.cs      auto-hide ownership rule (no Win32, unit-testable)
-├── ToggleThrottle.cs     debounces toggles (no Win32, unit-testable)
-├── Settings.cs           registry persistence, crash-recovery markers
-├── TrayIcon.cs           Shell_NotifyIcon, context menu, TaskbarCreated
-├── Autostart.cs          IRegistryValueStore, RegistryValueStore, Run key
-├── DialogLayout.cs       pure layout arithmetic for the capture dialog
-├── Theme.cs              light/dark theme detection
-├── SystemFont.cs         reads the shell's own message font
-├── IconPalette.cs        contrast-correct icon colouring
-├── MenuIcons.cs          renders the embedded Lucide alpha masks
-├── LucideIcons.g.cs      generated: embedded Lucide alpha masks
-└── app.ico
-tests/DesktopIconsToggle.Tests/   179 xUnit tests — see CONTRIBUTING.md
-tools/                             icon generation scripts (see CONTRIBUTING.md)
-docs/                              architecture docs and the French design spec
-```
 
-## Licence
+L'exécutable se trouve dans `src/DesktopIconsToggle/bin/Release/net10.0-windows/win-x64/publish/`. Voir [CONTRIBUTING.md](CONTRIBUTING.md) pour les règles de test et [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) pour le fonctionnement.
 
-[MIT](LICENSE), Copyright (c) 2026 welcometothesale.
+---
 
-Tray menu icons are derived from [Lucide](https://lucide.dev) (ISC
-licence) — see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+### ⚠️ À savoir
 
-## Credits
+- **Interface uniquement en français.**
+- **Exécutable non signé.** SmartScreen avertit au premier lancement après un téléchargement : *Informations complémentaires → Exécuter quand même*.
+- **Les raccourcis avec la touche Windows** (`Win+…`) peuvent s'enregistrer sans jamais se déclencher, car l'Explorateur les intercepte d'abord. Aucun n'est proposé par défaut.
+- **Le masquage automatique de la barre est global.** Windows n'offre aucun réglage par écran.
+- **Récupération manuelle**, si l'application est tuée pendant que les icônes sont masquées et jamais relancée : clic droit sur le bureau → *Affichage* → *Afficher les éléments du Bureau*.
 
-- Icons: [Lucide](https://lucide.dev).
-- Built by welcometothesale.
+---
+
+### ⚙️ Sous le capot
+
+Exécutable Windows natif compilé avec **.NET 10 NativeAOT** : interop Win32 écrite à la main, ni WinForms ni WPF, aucun runtime à installer. Il s'appuie sur le réglage *Afficher les éléments du Bureau* de Windows et sur le masquage automatique natif de la barre, et stocke ses préférences par utilisateur. La logique pure est couverte par **179 tests xUnit**.
+
+---
+
+### 📜 Licence
+
+DeskToggle est open source sous licence **GNU General Public License v3.0 (GPLv3)**, voir [LICENSE](LICENSE). Les icônes du menu sont dérivées de [Lucide](https://lucide.dev) (ISC), voir [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).

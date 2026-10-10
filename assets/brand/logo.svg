@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <!-- DeskToggle logo. Derived from the app icon (TrayIconArt: frame + 2x2 tiles, tile blue #78B4FF).
+       Left column = icons on, right column = icons off: both states in one mark. -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#202227"/>
+      <stop offset="1" stop-color="#0D0E10"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.38" cy="0.5" r="0.42">
+      <stop offset="0" stop-color="#78B4FF" stop-opacity=".30"/>
+      <stop offset="1" stop-color="#78B4FF" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9CC8FF"/>
+      <stop offset="1" stop-color="#78B4FF"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="240" height="240" rx="56" fill="url(#bg)"/>
+  <rect x="9" y="9" width="238" height="238" rx="55" fill="none" stroke="#FFFFFF" stroke-opacity=".10" stroke-width="2"/>
+  <rect x="8" y="8" width="240" height="240" rx="56" fill="url(#glow)"/>
+  <!-- frame -->
+  <rect x="58" y="58" width="140" height="140" rx="16" fill="none" stroke="#ECEBE6" stroke-width="14"/>
+  <!-- on tiles -->
+  <rect x="86" y="86" width="35" height="35" rx="7" fill="url(#tile)"/>
+  <rect x="86" y="135" width="35" height="35" rx="7" fill="url(#tile)"/>
+  <!-- off tiles -->
+  <rect x="136.5" y="87.5" width="32" height="32" rx="6" fill="none" stroke="#4A4D55" stroke-width="3"/>
+  <rect x="136.5" y="136.5" width="32" height="32" rx="6" fill="none" stroke="#4A4D55" stroke-width="3"/>
+</svg>

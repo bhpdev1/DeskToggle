@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<!-- DeskToggle hero / social preview. Logical size 1280x640.
+     Rendered by scripts/render-brand.ps1 (scale 2 -> assets/hero.png, scale 1 -> assets/brand/social-preview.png). -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="brand.css">
+<style>
+  html, body { width: 1280px; height: 640px; overflow: hidden; }
+  body { position: relative; }
+  .bgglow {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(45% 60% at 72% 48%, rgba(120,180,255,.10) 0%, rgba(120,180,255,0) 70%),
+      linear-gradient(180deg, #0F1013 0%, #0B0C0E 100%);
+  }
+  .gridlines {
+    position: absolute; inset: 0; opacity: .5;
+    background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size: 40px 40px;
+    -webkit-mask-image: radial-gradient(60% 70% at 72% 50%, #000 0%, transparent 75%);
+  }
+
+  .brand { position: absolute; left: 76px; top: 0; bottom: 0; width: 500px; display: flex; flex-direction: column; justify-content: center; }
+  .lockup { display: flex; align-items: center; gap: 18px; }
+  .lockup img { width: 84px; height: 84px; }
+  .lockup h1 { font-size: 62px; font-weight: 600; letter-spacing: -1.4px; line-height: 1; }
+  .tagline { margin-top: 26px; font-size: 26px; line-height: 1.32; font-weight: 400; max-width: 470px; }
+  .tagline b { font-weight: 600; color: var(--signal); }
+  .sub { margin-top: 12px; font: 400 17px/1.5 var(--font-text); color: var(--dim); max-width: 440px; }
+  .chips { margin-top: 28px; display: flex; flex-wrap: wrap; gap: 8px; max-width: 470px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 9px; height: 32px; padding: 0 13px;
+    border-radius: 8px; font: 500 13.5px/1 var(--mono); color: #D9DAD5;
+    background: var(--surface); border: 1px solid var(--line-strong);
+    box-shadow: 0 2px 0 #08090A;
+  }
+  .chip i { width: 8px; height: 8px; border-radius: 2px; background: var(--signal); }
+  .chip i.o { background: transparent; box-shadow: inset 0 0 0 1.5px #5A5D66; }
+
+  .scene { left: 610px; top: 74px; width: 600px; height: 420px; }
+  .scene .taskbar { justify-content: flex-start; padding-left: 14px; }
+  .layer.off { clip-path: polygon(57% 0, 100% 0, 100% 100%, 43% 100%); }
+  .seam { position: absolute; left: 610px; top: 74px; width: 600px; height: 420px; pointer-events: none; }
+  .state.on { left: 14px; }
+  .state.off { right: 14px; }
+  .press { position: absolute; left: 768px; top: 470px; }
+</style>
+</head>
+<body>
+  <div class="bgglow"></div>
+  <div class="gridlines"></div>
+
+  <div class="brand">
+    <div class="lockup">
+      <img src="logo.svg" alt="">
+      <h1>DeskToggle</h1>
+    </div>
+    <p class="tagline"><b>One keystroke.</b> Desktop icons and taskbar gone, then back.</p>
+    <p class="sub">A tiny native Windows utility for screen sharing, streaming and focused work.</p>
+    <div class="chips">
+      <span class="chip"><i></i>~1.5 MB single exe</span>
+      <span class="chip"><i></i>0 ms idle CPU</span>
+      <span class="chip"><i class="o"></i>No admin</span>
+      <span class="chip"><i class="o"></i>No keyboard hook</span>
+    </div>
+  </div>
+
+  <div class="scene">
+    <div class="layer on">
+      <div class="wall"></div>
+      <div class="icons" data-cols="7" data-rows="4" data-holes="11,18,19,23,26,27"></div>
+      <div class="taskbar"><span class="start"></span><span></span><span></span><span></span><span></span>
+        <div class="tray"><span style="background:var(--signal)"></span><span style="background:rgba(255,255,255,.3)"></span></div></div>
+    </div>
+    <div class="layer off">
+      <div class="wall"></div>
+    </div>
+    <span class="state on">Icons on</span>
+    <span class="state off">Icons off</span>
+  </div>
+  <svg class="seam" viewBox="0 0 600 420">
+    <defs><linearGradient id="sg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#78B4FF" stop-opacity=".0"/><stop offset=".35" stop-color="#78B4FF" stop-opacity=".9"/>
+      <stop offset="1" stop-color="#78B4FF" stop-opacity=".9"/></linearGradient>
+      <filter id="blur"><feGaussianBlur stdDeviation="4"/></filter></defs>
+    <line x1="342" y1="0" x2="258" y2="420" stroke="url(#sg)" stroke-width="6" filter="url(#blur)" opacity=".7"/>
+    <line x1="342" y1="0" x2="258" y2="420" stroke="url(#sg)" stroke-width="1.5"/>
+  </svg>
+
+  <div class="press keys">
+    <span class="key">Ctrl</span><span class="plus">+</span>
+    <span class="key">Alt</span><span class="plus">+</span>
+    <span class="key signal">D</span>
+  </div>
+
+  <div class="grain"></div>
+  <script src="scene.js"></script>
+</body>
+</html>

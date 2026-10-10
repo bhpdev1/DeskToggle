@@ -1,0 +1,23 @@
+/* Shared layout for 1000x560 screenshot frames. */
+html, body { width: 1000px; height: 560px; overflow: hidden; }
+body { position: relative; }
+.bg {
+  position: absolute; inset: 0;
+  background: radial-gradient(55% 65% at 50% 55%, rgba(120,180,255,.09) 0%, rgba(120,180,255,0) 70%), linear-gradient(180deg, #0F1013, #0B0C0E);
+}
+.gridlines {
+  position: absolute; inset: 0; opacity: .45;
+  background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: 40px 40px;
+  -webkit-mask-image: radial-gradient(60% 70% at 50% 50%, #000 0%, transparent 78%);
+}
+.tag {
+  position: absolute; left: 32px; top: 28px; display: flex; align-items: center; gap: 10px;
+  font: 600 11px/1 var(--mono); letter-spacing: 1.6px; text-transform: uppercase; color: var(--dim);
+}
+.tag img { width: 20px; height: 20px; }
+.tag em { font-style: normal; color: var(--signal); }
+.caption { position: absolute; left: 0; right: 0; bottom: 30px; text-align: center; font: 400 15px var(--font-text); color: var(--dim); }
+.caption b { color: var(--text); font-weight: 600; }
+.card { position: absolute; overflow: hidden; box-shadow: 0 30px 70px rgba(0,0,0,.6), 0 8px 20px rgba(0,0,0,.4); }
+.card img { position: absolute; display: block; }
