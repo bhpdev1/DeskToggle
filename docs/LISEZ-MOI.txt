@@ -133,4 +133,4 @@ quand il ne fait rien : il attend des evenements, il ne surveille rien en
 boucle.
 
 
-Version 2.1.0 - welcometothesale
+Version 2.2.0 - welcometothesale

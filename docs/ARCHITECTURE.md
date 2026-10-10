@@ -204,7 +204,7 @@ are the entire crash-recovery mechanism:
 
 ## Tests
 
-179 xUnit tests cover every component listed above that has no direct
+183 xUnit tests cover every component listed above that has no direct
 Win32 dependency: `HotkeyFormatter`, `Settings`, `Autostart`,
 `TaskbarPolicy`, `TaskbarHider.ApplyAutoHide`, `ToggleThrottle`,
 `DialogLayout`, `Theme`, `SystemFont`, and `IconPalette`. The Win32 glue

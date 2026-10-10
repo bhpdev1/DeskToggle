@@ -23,7 +23,7 @@ dotnet build src/DesktopIconsToggle -c Release
 dotnet test tests/DesktopIconsToggle.Tests
 ```
 
-There are 179 xUnit tests. They cover exactly the logic that has been
+There are 183 xUnit tests. They cover exactly the logic that has been
 extracted out of the Win32 interop layer, on purpose, so it can be
 tested without a real desktop, a real registry, or a real shell:
 

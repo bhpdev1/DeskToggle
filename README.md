@@ -105,7 +105,7 @@ The executable lands in `src/DesktopIconsToggle/bin/Release/net10.0-windows/win-
 
 ### ⚙️ Under the hood
 
-Native Windows executable built with **.NET 10 NativeAOT**: hand-written Win32 interop, no WinForms or WPF, no runtime to install. It uses Windows' own *Show desktop icons* switch and the taskbar's own auto-hide setting, and stores its preferences per-user. The pure logic is covered by **179 xUnit tests**.
+Native Windows executable built with **.NET 10 NativeAOT**: hand-written Win32 interop, no WinForms or WPF, no runtime to install. It uses Windows' own *Show desktop icons* switch and the taskbar's own auto-hide setting, and stores its preferences per-user. The pure logic is covered by **183 xUnit tests**.
 
 ---
 
@@ -196,7 +196,7 @@ L'exécutable se trouve dans `src/DesktopIconsToggle/bin/Release/net10.0-windows
 
 ### ⚙️ Sous le capot
 
-Exécutable Windows natif compilé avec **.NET 10 NativeAOT** : interop Win32 écrite à la main, ni WinForms ni WPF, aucun runtime à installer. Il s'appuie sur le réglage *Afficher les éléments du Bureau* de Windows et sur le masquage automatique natif de la barre, et stocke ses préférences par utilisateur. La logique pure est couverte par **179 tests xUnit**.
+Exécutable Windows natif compilé avec **.NET 10 NativeAOT** : interop Win32 écrite à la main, ni WinForms ni WPF, aucun runtime à installer. Il s'appuie sur le réglage *Afficher les éléments du Bureau* de Windows et sur le masquage automatique natif de la barre, et stocke ses préférences par utilisateur. La logique pure est couverte par **183 tests xUnit**.
 
 ---
 
