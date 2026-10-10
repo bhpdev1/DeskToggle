@@ -25,7 +25,7 @@
 ---
 
 <a name="english"></a>
-## 🇬🇧 English
+## English
 
 ### Why DeskToggle
 
@@ -39,7 +39,7 @@ You are about to share your screen, start a stream or settle in for focused work
 
 ---
 
-### ✨ Features
+### Features
 
 | Feature | What you get |
 | :--- | :--- |
@@ -52,7 +52,7 @@ You are about to share your screen, start a stream or settle in for focused work
 
 ---
 
-### 📸 Screenshots
+### Screenshots
 
 <div align="center">
 
@@ -68,7 +68,7 @@ You are about to share your screen, start a stream or settle in for focused work
 
 ---
 
-### 🚀 Installation & Usage
+### Installation & Usage
 
 #### Option A: Pre-built executable
 1. Download `DesktopIconsToggle.exe` from [Releases](https://github.com/bhpdev1/DeskToggle/releases).
@@ -93,7 +93,7 @@ The executable lands in `src/DesktopIconsToggle/bin/Release/net10.0-windows/win-
 
 ---
 
-### ⚠️ Good to know
+### Good to know
 
 - **French-only interface.** Menus and dialogs are in French.
 - **Unsigned executable.** SmartScreen warns on first launch after a download: *More info → Run anyway*.
@@ -103,20 +103,20 @@ The executable lands in `src/DesktopIconsToggle/bin/Release/net10.0-windows/win-
 
 ---
 
-### ⚙️ Under the hood
+### Under the hood
 
 Native Windows executable built with **.NET 10 NativeAOT**: hand-written Win32 interop, no WinForms or WPF, no runtime to install. It uses Windows' own *Show desktop icons* switch and the taskbar's own auto-hide setting, and stores its preferences per-user. The pure logic is covered by **183 xUnit tests**.
 
 ---
 
-### 📜 License
+### License
 
 DeskToggle is licensed under the **GNU General Public License v3.0**, see [LICENSE](LICENSE). Tray menu icons are derived from [Lucide](https://lucide.dev) (ISC), see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 ---
 
 <a name="français"></a>
-## 🇫🇷 Français
+## Français
 
 ### Pourquoi DeskToggle
 
@@ -130,7 +130,7 @@ Vous allez partager votre écran, lancer un stream ou vous concentrer, et votre 
 
 ---
 
-### ✨ Fonctionnalités
+### Fonctionnalités
 
 | Fonctionnalité | Ce que vous obtenez |
 | :--- | :--- |
@@ -143,7 +143,7 @@ Vous allez partager votre écran, lancer un stream ou vous concentrer, et votre 
 
 ---
 
-### 📸 Captures d'écran
+### Captures d'écran
 
 <div align="center">
 
@@ -159,7 +159,7 @@ Vous allez partager votre écran, lancer un stream ou vous concentrer, et votre 
 
 ---
 
-### 🚀 Installation & utilisation
+### Installation & utilisation
 
 #### Option A : exécutable précompilé
 1. Téléchargez `DesktopIconsToggle.exe` depuis les [Releases](https://github.com/bhpdev1/DeskToggle/releases).
@@ -184,7 +184,7 @@ L'exécutable se trouve dans `src/DesktopIconsToggle/bin/Release/net10.0-windows
 
 ---
 
-### ⚠️ À savoir
+### À savoir
 
 - **Interface uniquement en français.**
 - **Exécutable non signé.** SmartScreen avertit au premier lancement après un téléchargement : *Informations complémentaires → Exécuter quand même*.
@@ -194,12 +194,12 @@ L'exécutable se trouve dans `src/DesktopIconsToggle/bin/Release/net10.0-windows
 
 ---
 
-### ⚙️ Sous le capot
+### Sous le capot
 
 Exécutable Windows natif compilé avec **.NET 10 NativeAOT** : interop Win32 écrite à la main, ni WinForms ni WPF, aucun runtime à installer. Il s'appuie sur le réglage *Afficher les éléments du Bureau* de Windows et sur le masquage automatique natif de la barre, et stocke ses préférences par utilisateur. La logique pure est couverte par **183 tests xUnit**.
 
 ---
 
-### 📜 Licence
+### Licence
 
 DeskToggle est open source sous licence **GNU General Public License v3.0 (GPLv3)**, voir [LICENSE](LICENSE). Les icônes du menu sont dérivées de [Lucide](https://lucide.dev) (ISC), voir [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
