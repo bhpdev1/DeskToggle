@@ -7,13 +7,13 @@
 **One keystroke to hide your desktop icons and taskbar. Press it again to bring them back.**<br>
 <em>Un raccourci pour masquer les icônes du bureau et la barre des tâches. Un second appui pour les retrouver.</em>
 
-<a href="https://github.com/bhpdev1/DeskToggle/releases/latest"><img src="https://img.shields.io/github/v/release/bhpdev1/DeskToggle?style=flat-square&label=release&labelColor=2A2D33&color=78B4FF" alt="Latest release"></a>
-<a href="https://github.com/bhpdev1/DeskToggle/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/bhpdev1/DeskToggle/ci.yml?style=flat-square&label=build&labelColor=2A2D33" alt="Build status"></a>
-<img src="https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-4A4D55?style=flat-square&labelColor=2A2D33" alt="Windows 10 and 11">
-<img src="https://img.shields.io/badge/runtime-.NET%2010%20NativeAOT-4A4D55?style=flat-square&logo=dotnet&logoColor=78B4FF&labelColor=2A2D33" alt=".NET 10 NativeAOT">
-<img src="https://img.shields.io/badge/size-~1.5%20MB-4A4D55?style=flat-square&labelColor=2A2D33" alt="About 1.5 MB">
-<img src="https://img.shields.io/badge/admin-not%20required-4A4D55?style=flat-square&labelColor=2A2D33" alt="No admin rights required">
-<img src="https://img.shields.io/github/license/bhpdev1/DeskToggle?style=flat-square&labelColor=2A2D33&color=4A4D55" alt="License">
+<a href="https://github.com/bhpdev1/DeskToggle/releases/latest"><img src="https://img.shields.io/github/v/release/bhpdev1/DeskToggle?style=flat-square&logo=github&logoColor=white&label=Release&color=78B4FF" alt="Latest release"></a>
+<img src="https://img.shields.io/badge/Windows-11%20%7C%2010-0078D4?style=flat-square" alt="Windows 11 and 10">
+<img src="https://img.shields.io/badge/.NET%2010-NativeAOT-512BD4?style=flat-square&logo=dotnet&logoColor=white" alt=".NET 10 NativeAOT">
+<img src="https://img.shields.io/badge/Size-~1.5%20MB-78B4FF?style=flat-square" alt="About 1.5 MB">
+<img src="https://img.shields.io/badge/Idle%20CPU-0%20ms-22c55e?style=flat-square" alt="0 ms idle CPU">
+<img src="https://img.shields.io/badge/Admin%20rights-none-3A3C42?style=flat-square" alt="No admin rights">
+<img src="https://img.shields.io/badge/License-GPLv3-78B4FF?style=flat-square" alt="GNU GPLv3 License">
 
 <br><br>
 
